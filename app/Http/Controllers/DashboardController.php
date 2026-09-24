@@ -8,42 +8,62 @@ use Carbon\Carbon;
 /**
  * DashboardController
  *
- * Menghitung statistik nyata dari database db_indukk untuk grafik di
- * dashboard.blade.php (dashboard.js), menggantikan objek `data` yang
- * sebelumnya di-hardcode di file tersebut. Bentuk response dibuat
- * identik dengan struktur `data` lama supaya dashboard.js hanya perlu
- * diubah pada baris pengambilan data, bukan logika chart-nya.
+ * Menghitung statistik nyata dari database db_indukk untuk dashboard.blade.php
+ * (dashboard.js). Yang dihitung hanya karyawan berstatus AKTIF.
+ *
+ * Status pegawai dan pendidikan terakhir dinormalkan lebih dulu
+ * (Karyawan::normalisasiStatus / normalisasiPendidikan), karena data hasil
+ * import Excel bisa berbunyi "Kontrak", "Tetap", "D3", "SMA", dan seterusnya,
+ * sedangkan grafik memakai kode baku tetap/pkwt/honorer/penugasan dan
+ * SD/SLTP/SLTA/DIII/S1/S2/S3.
  */
 class DashboardController extends Controller
 {
     public function summary()
     {
-        $karyawan = Karyawan::with('pendidikan')->get();
+        $karyawan = Karyawan::with('pendidikan')
+            ->where('status_aktif', true)
+            ->get()
+            ->each(function (Karyawan $k) {
+                $k->status_baku = Karyawan::normalisasiStatus($k->status_pegawai);
+                $k->pendidikan_baku = Karyawan::normalisasiPendidikan($k->pendidikan?->pendidikan_terakhir);
+                $k->umur = $k->tanggal_lahir ? Carbon::parse($k->tanggal_lahir)->age : null;
+            });
+
+        $kelompokUsia = function ($umur): ?int {
+            if ($umur === null) return null;
+            if ($umur <= 35) return 0;
+            if ($umur <= 45) return 1;
+            return 2;
+        };
 
         // ---- Pendidikan (SD / SLTP / SLTA / PT) ----
-        $pendidikanCount = ['SD' => 0, 'SLTP' => 0, 'SLTA' => 0, 'PT' => ['DIII', 'S1', 'S2', 'S3']];
-        $sd = $sltp = $slta = $pt = 0;
-        foreach ($karyawan as $k) {
-            $p = $k->pendidikan?->pendidikan_terakhir;
-            if ($p === 'SD') $sd++;
-            elseif ($p === 'SLTP') $sltp++;
-            elseif ($p === 'SLTA') $slta++;
-            elseif (in_array($p, ['DIII', 'S1', 'S2', 'S3'], true)) $pt++;
-        }
+        $sd = $karyawan->where('pendidikan_baku', 'SD')->count();
+        $sltp = $karyawan->where('pendidikan_baku', 'SLTP')->count();
+        $slta = $karyawan->where('pendidikan_baku', 'SLTA')->count();
+        $pt = $karyawan->whereIn('pendidikan_baku', ['DIII', 'S1', 'S2', 'S3'])->count();
 
         // ---- Usia (25-35 / 36-45 / >45) ----
-        $usia1 = $usia2 = $usia3 = 0;
+        $usia = [0, 0, 0];
         foreach ($karyawan as $k) {
-            if (! $k->tanggal_lahir) continue;
-            $umur = Carbon::parse($k->tanggal_lahir)->age;
-            if ($umur <= 35) $usia1++;
-            elseif ($umur <= 45) $usia2++;
-            else $usia3++;
+            $g = $kelompokUsia($k->umur);
+            if ($g !== null) $usia[$g]++;
         }
 
-        // ---- Status kepegawaian (PKWT vs lainnya / "HL") ----
-        $pkwt = $karyawan->where('status_pegawai', 'pkwt')->count();
-        $hl = $karyawan->count() - $pkwt;
+        // ---- Status kepegawaian untuk donut & kotak KPI ----
+        // PKWT = kontrak/PKWT, HL = honorer / harian lepas.
+        $pkwt = $karyawan->where('status_baku', 'pkwt')->count();
+        $hl = $karyawan->where('status_baku', 'honorer')->count();
+
+        // ---- Masa kerja lebih dari 5 tahun ----
+        // Dihitung dari tanggal masuk; kalau kosong, pakai kolom masa_kerja (tahun).
+        $batas = now()->subYears(5);
+        $masaKerja5 = $karyawan->filter(function (Karyawan $k) use ($batas) {
+            if ($k->tanggal_masuk) {
+                return $k->tanggal_masuk->lt($batas);
+            }
+            return (int) $k->masa_kerja > 5;
+        })->count();
 
         // ---- Matriks: baris status pegawai, kolom [25-35,36-45,>45,S1,DIII,SMA,SMP] ----
         $rows = [
@@ -55,30 +75,40 @@ class DashboardController extends Controller
 
         $matriks = [];
         foreach ($rows as $key => $label) {
-            $subset = $karyawan->where('status_pegawai', $key);
-            $u1 = $u2 = $u3 = 0;
+            $subset = $karyawan->where('status_baku', $key);
+            $u = [0, 0, 0];
             foreach ($subset as $k) {
-                if (! $k->tanggal_lahir) continue;
-                $umur = Carbon::parse($k->tanggal_lahir)->age;
-                if ($umur <= 35) $u1++;
-                elseif ($umur <= 45) $u2++;
-                else $u3++;
+                $g = $kelompokUsia($k->umur);
+                if ($g !== null) $u[$g]++;
             }
-            $s1 = $subset->filter(fn ($k) => $k->pendidikan?->pendidikan_terakhir === 'S1')->count();
-            $d3 = $subset->filter(fn ($k) => $k->pendidikan?->pendidikan_terakhir === 'DIII')->count();
-            $sma = $subset->filter(fn ($k) => $k->pendidikan?->pendidikan_terakhir === 'SLTA')->count();
-            $smp = $subset->filter(fn ($k) => $k->pendidikan?->pendidikan_terakhir === 'SLTP')->count();
 
-            $matriks[] = ['nama' => $label, 'nilai' => [$u1, $u2, $u3, $s1, $d3, $sma, $smp]];
+            $matriks[] = [
+                'nama' => $label,
+                'nilai' => [
+                    $u[0],
+                    $u[1],
+                    $u[2],
+                    $subset->where('pendidikan_baku', 'S1')->count(),
+                    $subset->where('pendidikan_baku', 'DIII')->count(),
+                    $subset->where('pendidikan_baku', 'SLTA')->count(),
+                    $subset->where('pendidikan_baku', 'SLTP')->count(),
+                ],
+            ];
         }
 
         return response()->json([
             'pendidikan' => ['labels' => ['SD', 'SLTP', 'SLTA', 'PT'], 'jumlah' => [$sd, $sltp, $slta, $pt]],
-            'usia' => ['labels' => ['25–35', '36–45', '>45'], 'jumlah' => [$usia1, $usia2, $usia3]],
+            'usia' => ['labels' => ['25–35', '36–45', '>45'], 'jumlah' => $usia],
             'status' => ['pkwt' => $pkwt, 'hl' => $hl],
             'matriks' => $matriks,
+            'kpi' => [
+                'total' => $karyawan->count(),
+                'pkwt' => $pkwt,
+                'hl' => $hl,
+                'masaKerja5' => $masaKerja5,
+            ],
             'totalKaryawan' => $karyawan->count(),
-            'totalAktif' => $karyawan->where('status_aktif', true)->count(),
+            'totalAktif' => $karyawan->count(),
         ]);
     }
 }

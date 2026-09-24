@@ -16,7 +16,7 @@ class RiwayatController extends Controller
 {
     public function index()
     {
-        return SlipHistory::latest()->limit(1000)->get()->map(fn (SlipHistory $h) => [
+        return SlipHistory::latest()->limit(1000)->get()->map(fn(SlipHistory $h) => [
             'id' => (string) $h->id,
             'nik' => $h->karyawan_nik,
             'nama' => $h->nama,
@@ -27,6 +27,9 @@ class RiwayatController extends Controller
             'status' => $h->status,
             'channel' => $h->channel,
             'keterangan' => $h->keterangan,
+            // PDF yang sama persis dengan lampiran email (SlipController@pdf).
+            'payrollId' => $h->payroll_id,
+            'pdfUrl' => $h->payroll_id ? route('api.slip.pdf', $h->payroll_id, false) : null,
             'tanggal' => $h->created_at->format('d-m-Y'),
             'jam' => $h->created_at->format('H:i'),
         ]);

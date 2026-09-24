@@ -61,6 +61,55 @@ class Karyawan extends Model
         ];
     }
 
+    /**
+     * Samakan penulisan status pegawai dari Excel/form ke kode baku:
+     * tetap | pkwt | honorer | penugasan. Mis. "Kontrak" -> pkwt,
+     * "Tetap" -> tetap, "HL" / "Harian Lepas" -> honorer.
+     * Mengembalikan null bila tidak dikenali.
+     */
+    public static function normalisasiStatus(?string $nilai): ?string
+    {
+        $s = mb_strtolower(trim((string) $nilai));
+        if ($s === '') {
+            return null;
+        }
+        if (str_contains($s, 'pkwt') || str_contains($s, 'kontrak')) {
+            return 'pkwt';
+        }
+        if (str_contains($s, 'penugasan') || str_contains($s, 'tugas')) {
+            return 'penugasan';
+        }
+        if (str_contains($s, 'honor') || str_contains($s, 'harian') || preg_match('/^hl\b/', $s)) {
+            return 'honorer';
+        }
+        if (str_contains($s, 'tetap')) {
+            return 'tetap';
+        }
+
+        return null;
+    }
+
+    /**
+     * Samakan penulisan pendidikan terakhir ke: SD | SLTP | SLTA | DIII | S1 | S2 | S3.
+     * Mis. "D3" -> DIII, "SMA"/"SMK" -> SLTA, "SMP" -> SLTP.
+     */
+    public static function normalisasiPendidikan(?string $nilai): ?string
+    {
+        $s = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', (string) $nilai));
+
+        return match (true) {
+            $s === '' => null,
+            $s === 'SD' || $s === 'MI' => 'SD',
+            in_array($s, ['SLTP', 'SMP', 'MTS'], true) => 'SLTP',
+            in_array($s, ['SLTA', 'SMA', 'SMK', 'MA', 'SLTASMK'], true) => 'SLTA',
+            in_array($s, ['D3', 'DIII', 'DIPLOMA3', 'DIPLOMA'], true) => 'DIII',
+            in_array($s, ['S1', 'D4', 'SARJANA', 'STRATA1'], true) => 'S1',
+            in_array($s, ['S2', 'MAGISTER', 'STRATA2'], true) => 'S2',
+            in_array($s, ['S3', 'DOKTOR', 'STRATA3'], true) => 'S3',
+            default => null,
+        };
+    }
+
     /* =========================================================
      * Relasi ke data master lain (masih di db_induk)
      * ========================================================= */
@@ -126,6 +175,6 @@ class Karyawan extends Model
      */
     protected function channelPengiriman(): Attribute
     {
-        return Attribute::get(fn () => $this->email ? 'email' : ($this->no_hp ? 'wa' : null));
+        return Attribute::get(fn() => $this->email ? 'email' : ($this->no_hp ? 'wa' : null));
     }
 }

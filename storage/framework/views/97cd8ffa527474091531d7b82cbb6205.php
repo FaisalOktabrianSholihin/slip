@@ -20,4 +20,4 @@
   <script src="<?php echo e(asset('js/log-aktivitas.js')); ?>"></script>
 <?php $__env->stopPush(); ?>
 
-<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH D:\project slip gaji\slip4\resources\views/pages/log-aktivitas.blade.php ENDPATH**/ ?>
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH D:\project slip gaji\slip6\slip4\resources\views/pages/log-aktivitas.blade.php ENDPATH**/ ?>
