@@ -1,0 +1,157 @@
+/* ===== Topheader (tema hijau) =====
+   Warna memakai variabel --g-* bila ada, dengan nilai cadangan
+   supaya file ini tetap jalan di halaman yang tidak memuat dashboard.css */
+
+.topheader {
+  --th-line: #dfe6ed;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  container-type: inline-size;   /* responsif mengikuti lebar area konten */
+  background: #fff;
+  border-bottom: 1px solid var(--th-line);
+  box-shadow: 0 1px 6px rgba(0, 107, 60, .06);
+  font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+}
+
+.topheader-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 68px;
+  padding: 10px 24px;
+}
+
+/* ----- Ikon + Judul ----- */
+.topheader-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.topheader-icon {
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: var(--g-100, #eef8f0);
+  color: var(--g-700, #078b4c);
+  font-size: 1.3rem;
+}
+.topheader-icon[hidden] { display: none; }
+
+.topheader-title { min-width: 0; }
+
+.topheader-title h1 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+  line-height: 1.2;
+  color: var(--g-800, #006b3c);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.topheader-title p {
+  margin: 2px 0 0;
+  font-size: .85rem;
+  color: var(--muted, #61738a);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.topheader-title p:empty { display: none; }
+
+/* ----- Akun (kanan) ----- */
+.topheader-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+/* ----- Akun ----- */
+.th-user { position: relative; }
+
+.th-user-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 10px 4px 4px;
+  border: 1px solid var(--th-line);
+  border-radius: 999px;
+  background: #fff;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition: background .15s;
+}
+.th-user-btn:hover { background: var(--g-50, #f6fbf7); }
+
+.th-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, var(--g-500, #35a84c), var(--g-700, #078b4c));
+  color: #fff;
+  font-weight: 700;
+  font-size: .95rem;
+}
+
+.th-user-text { display: flex; flex-direction: column; text-align: left; line-height: 1.2; }
+.th-user-text strong { font-size: .88rem; color: var(--text, #293b4e); }
+.th-user-text small  { font-size: .74rem; color: var(--muted, #61738a); }
+
+.th-caret { font-size: .75rem; color: var(--muted, #61738a); transition: transform .2s; }
+.th-user-btn[aria-expanded="true"] .th-caret { transform: rotate(180deg); }
+
+.th-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  min-width: 200px;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  background: #fff;
+  border: 1px solid var(--th-line);
+  border-radius: 12px;
+  box-shadow: 0 10px 24px rgba(0, 107, 60, .16);
+}
+.th-menu[hidden] { display: none; }
+
+.th-menu a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  color: var(--text, #293b4e);
+  font-size: .9rem;
+  text-decoration: none;
+}
+.th-menu a:hover { background: var(--g-100, #eef8f0); color: var(--g-800, #006b3c); }
+.th-menu a i { color: var(--g-700, #078b4c); }
+.th-divider { height: 1px; margin: 6px 4px; background: var(--th-line); }
+
+.th-user-btn:focus-visible,
+.th-menu a:focus-visible {
+  outline: 2px solid var(--g-500, #35a84c);
+  outline-offset: 2px;
+}
+
+/* ----- Responsif (mengikuti lebar area konten) ----- */
+@container (max-width: 560px) {
+  .topheader-inner { padding: 10px 14px; }
+  .th-user-text, .th-caret { display: none; }
+  .th-user-btn { padding: 3px; }
+  .topheader-title h1 { font-size: 1.05rem; }
+  .topheader-icon { width: 36px; height: 36px; font-size: 1.1rem; border-radius: 10px; }
+}

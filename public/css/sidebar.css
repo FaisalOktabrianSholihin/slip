@@ -1,0 +1,1079 @@
+/* =========================================================
+   RESET & FONT GLOBAL
+   Font diatur di sini karena sidebar.css dimuat oleh SEMUA
+   halaman, sehingga sidebar, top header, dan konten selalu
+   memakai font yang sama.
+========================================================= */
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    min-height: 100%;
+}
+
+body {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Tombol & input tidak otomatis mewarisi font dari body */
+button,
+input,
+select,
+textarea {
+    font-family: inherit;
+}
+
+
+/* =========================================================
+   APP CONTAINER
+========================================================= */
+
+.app-container {
+    --sidebar-width: 255px;
+    --sidebar-closed-width: 105px;
+
+    width: 100%;
+    min-height: 100vh;
+
+    position: relative;
+}
+
+/* Dipasang sementara oleh sidebar.js saat halaman baru dimuat,
+   agar sidebar / konten tidak "meloncat" ketika status tertutup
+   dipulihkan. */
+.app-container.sidebar-preload .sidebar,
+.app-container.sidebar-preload .main-content {
+    transition: none !important;
+}
+
+
+/* =========================================================
+   SIDEBAR
+========================================================= */
+
+.sidebar {
+    position: fixed;
+
+    top: 0;
+    left: 0;
+
+    width: var(--sidebar-width);
+    height: 100vh;
+
+    padding: 14px 18px;
+
+    background: linear-gradient(
+        180deg,
+        #005c33 0%,
+        #006b3c 55%,
+        #004a28 100%
+    );
+
+    color: #ffffff;
+
+    z-index: 2000;
+
+    display: flex;
+    flex-direction: column;
+
+    overflow: hidden;
+
+    transition:
+        width 0.3s ease,
+        padding 0.3s ease,
+        transform 0.3s ease;
+}
+
+/* Tinggi mengikuti layar HP (bar alamat browser naik-turun) */
+@supports (height: 100dvh) {
+    .sidebar {
+        height: 100dvh;
+    }
+}
+
+
+/* =========================================================
+   BRAND
+========================================================= */
+
+.sidebar-brand {
+    width: 100%;
+
+    display: flex;
+    align-items: center;
+
+    gap: 12px;
+
+    min-height: 55px;
+
+    flex-shrink: 0;
+}
+
+.sidebar-logo {
+    width: 46px;
+    height: 46px;
+
+    flex: 0 0 46px;
+
+    background: rgba(255, 255, 255, 0.16);
+
+    border-radius: 8px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    overflow: hidden;
+}
+
+.sidebar-logo img {
+    width: 39px;
+    height: 39px;
+
+    object-fit: contain;
+
+    display: block;
+}
+
+.sidebar-brand-text {
+    display: flex;
+    flex-direction: column;
+
+    gap: 1px;
+
+    color: #ffffff;
+
+    font-size: 14px;
+    font-weight: 700;
+
+    line-height: 1.2;
+
+    letter-spacing: 0.1px;
+
+    white-space: nowrap;
+
+    overflow: hidden;
+}
+
+
+/* =========================================================
+   DIVIDER
+========================================================= */
+
+.sidebar-divider {
+    width: 100%;
+    height: 1px;
+
+    margin: 8px 0 9px;
+
+    background: rgba(255, 255, 255, 0.2);
+
+    flex-shrink: 0;
+}
+
+
+/* =========================================================
+   MENU
+========================================================= */
+
+.sidebar-menu {
+    width: 100%;
+
+    display: flex;
+    flex-direction: column;
+
+    gap: 2px;
+
+    overflow-y: auto;
+
+    padding-right: 2px;
+    padding-bottom: 45px;
+
+    scrollbar-width: thin;
+}
+
+.sidebar-menu::-webkit-scrollbar {
+    width: 3px;
+}
+
+.sidebar-menu::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.18);
+    border-radius: 10px;
+}
+
+
+/* =========================================================
+   MENU TITLE
+========================================================= */
+
+.menu-title {
+    margin-top: 7px;
+    margin-bottom: 2px;
+
+    color: #b7dcc3;
+
+    font-size: 9px;
+    font-weight: 700;
+
+    letter-spacing: 0.1px;
+
+    flex-shrink: 0;
+}
+
+.system-title {
+    margin-top: 9px;
+}
+
+
+/* =========================================================
+   MENU ITEM
+========================================================= */
+
+.menu-item {
+    position: relative;
+
+    width: 100%;
+    min-height: 42px;
+
+    padding: 5px 10px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 9px;
+
+    color: #ffffff;
+
+    text-decoration: none;
+
+    border: none;
+    border-radius: 7px;
+
+    background: transparent;
+
+    font-family: inherit;
+
+    font-size: 12px;
+    font-weight: 400;
+
+    flex-shrink: 0;
+
+    cursor: pointer;
+
+    transition:
+        background 0.2s ease,
+        color 0.2s ease;
+}
+
+
+/* ICON */
+
+.menu-item i:first-child {
+    width: 19px;
+
+    flex: 0 0 19px;
+
+    color: #bfe3cb;
+
+    font-size: 15px;
+
+    text-align: center;
+}
+
+
+/* TEXT */
+
+.menu-item span {
+    min-width: 0;
+
+    white-space: nowrap;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+}
+
+
+/* HOVER */
+
+.menu-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+
+/* ACTIVE */
+
+.menu-item.active {
+    background: rgba(255, 255, 255, 0.17);
+
+    color: #ffffff;
+
+    font-weight: 600;
+}
+
+.menu-item.active i:first-child {
+    color: #ffffff;
+}
+
+/* Penanda menu aktif: hijau limau seperti aksen halaman login */
+.menu-item.active {
+    box-shadow: inset 3px 0 0 #72c83e;
+}
+
+
+/* FOCUS (navigasi keyboard) */
+
+.menu-item:focus-visible,
+.sidebar-toggle:focus-visible {
+    outline: 2px solid #ffffff;
+    outline-offset: -2px;
+}
+
+
+/* =========================================================
+   MENU GROUP
+========================================================= */
+
+.menu-group {
+    width: 100%;
+}
+
+
+/* =========================================================
+   MASTER DATA TOGGLE
+========================================================= */
+
+.master-data-toggle {
+    text-align: left;
+}
+
+.menu-group.open .master-data-toggle {
+    background: rgba(255, 255, 255, 0.17);
+}
+
+
+/* =========================================================
+   MENU ARROW
+========================================================= */
+
+.menu-arrow {
+    width: auto !important;
+
+    margin-left: auto;
+
+    color: #cbe9d5 !important;
+
+    font-size: 12px !important;
+
+    transition: transform 0.25s ease;
+}
+
+.menu-group.open .menu-arrow {
+    transform: rotate(180deg);
+}
+
+
+/* =========================================================
+   SUBMENU
+========================================================= */
+
+.master-data-submenu {
+    width: calc(100% - 4px);
+
+    margin: 3px 0 4px 4px;
+
+    padding: 5px 0;
+
+    background: #ffffff;
+
+    border-radius: 7px;
+
+    display: none;
+
+    overflow: hidden;
+
+    box-shadow:
+        0 7px 18px rgba(0, 60, 32, 0.15);
+
+    animation: submenuShow 0.2s ease;
+}
+
+.menu-group.open .master-data-submenu {
+    display: block;
+}
+
+
+/* SUBMENU ANIMATION */
+
+@keyframes submenuShow {
+
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+}
+
+
+/* SUBMENU ITEM */
+
+.submenu-item {
+    width: 100%;
+
+    min-height: 37px;
+
+    padding: 0 27px;
+
+    display: flex;
+    align-items: center;
+
+    color: #293b4e;
+
+    text-decoration: none;
+
+    font-size: 11px;
+    font-weight: 400;
+
+    transition:
+        background 0.2s ease,
+        color 0.2s ease;
+}
+
+.submenu-item:hover {
+    background: #eef8f0;
+
+    color: #078b4c;
+}
+
+.submenu-item.active {
+    background: #eef8f0;
+
+    color: #006b3c;
+
+    font-weight: 600;
+}
+
+.submenu-item:focus-visible {
+    outline: 2px solid #006b3c;
+    outline-offset: -2px;
+}
+
+
+/* =========================================================
+   SIDEBAR TOGGLE
+========================================================= */
+
+.sidebar-toggle {
+    position: absolute;
+
+    left: 50%;
+    bottom: 7px;
+
+    transform: translateX(-50%);
+
+    width: 42px;
+    height: 42px;
+
+    border: none;
+    border-radius: 50%;
+
+    background: #35a84c;
+
+    color: #ffffff;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-size: 15px;
+
+    cursor: pointer;
+
+    box-shadow:
+        0 4px 12px rgba(0, 50, 26, 0.25);
+
+    transition:
+        background 0.2s ease,
+        transform 0.2s ease;
+}
+
+.sidebar-toggle:hover {
+    background: #43b458;
+
+    transform:
+        translateX(-50%)
+        scale(1.04);
+}
+
+.sidebar-toggle:active {
+    transform:
+        translateX(-50%)
+        scale(0.97);
+}
+
+.sidebar-toggle:focus-visible {
+    outline-offset: 2px;
+}
+
+
+/* =========================================================
+   MAIN CONTENT
+   PENTING:
+   Posisi konten selalu mengikuti lebar sidebar.
+========================================================= */
+
+.main-content {
+    position: relative;
+
+    width: calc(100% - var(--sidebar-width));
+
+    min-height: 100vh;
+
+    margin-left: var(--sidebar-width);
+
+    transition:
+        width 0.3s ease,
+        margin-left 0.3s ease;
+
+    /* "clip" memotong overflow tanpa menjadikan elemen ini scroll
+       container (position: sticky di dalamnya tetap berfungsi).
+       Browser lama yang belum mengenal clip memakai hidden. */
+    overflow-x: hidden;
+    overflow-x: clip;
+}
+
+
+/* =========================================================
+   SIDEBAR CLOSED
+========================================================= */
+
+/* SIDEBAR CLOSED */
+
+.app-container.sidebar-closed .sidebar {
+    width: var(--sidebar-closed-width);
+
+    padding-left: 12px;
+    padding-right: 12px;
+}
+
+
+/* BRAND CLOSED */
+
+.app-container.sidebar-closed .sidebar-brand {
+    min-height: 65px;
+
+    justify-content: center;
+
+    gap: 0;
+}
+
+.app-container.sidebar-closed .sidebar-logo {
+    width: 58px;
+    height: 58px;
+}
+
+.app-container.sidebar-closed .sidebar-logo img {
+    width: 44px;
+    height: 44px;
+}
+
+.app-container.sidebar-closed .sidebar-brand-text {
+    display: none;
+}
+
+
+/* DIVIDER CLOSED */
+
+.app-container.sidebar-closed .sidebar-divider {
+    margin-top: 9px;
+    margin-bottom: 8px;
+}
+
+
+/* MENU CLOSED */
+
+.app-container.sidebar-closed .sidebar-menu {
+    gap: 2px;
+}
+
+
+/* TITLE CLOSED */
+
+.app-container.sidebar-closed .menu-title {
+    text-align: center;
+
+    line-height: 1.3;
+
+    margin-top: 6px;
+
+    font-size: 8px;
+}
+
+
+/* ITEM CLOSED */
+
+.app-container.sidebar-closed .menu-item {
+    min-height: 52px;
+
+    padding: 4px 2px;
+
+    flex-direction: column;
+
+    align-items: center;
+    justify-content: center;
+
+    gap: 2px;
+
+    text-align: center;
+}
+
+
+/* ICON CLOSED */
+
+.app-container.sidebar-closed .menu-item i:first-child {
+    width: auto;
+
+    font-size: 15px;
+}
+
+
+/* TEXT CLOSED */
+
+.app-container.sidebar-closed .menu-item span {
+    width: 100%;
+
+    font-size: 8px;
+
+    line-height: 1.15;
+
+    white-space: normal;
+
+    text-overflow: unset;
+
+    overflow: hidden;
+}
+
+
+/* ARROW CLOSED */
+
+.app-container.sidebar-closed .menu-arrow {
+    display: none;
+}
+
+
+/* SUBMENU CLOSED */
+
+.app-container.sidebar-closed .master-data-submenu {
+    display: none !important;
+}
+
+.app-container.sidebar-closed .menu-group.open .master-data-toggle {
+    background: transparent;
+}
+
+
+/* TOGGLE CLOSED */
+
+.app-container.sidebar-closed .sidebar-toggle {
+    bottom: 7px;
+
+    width: 40px;
+    height: 40px;
+}
+
+
+/* MAIN CONTENT CLOSED */
+
+.app-container.sidebar-closed .main-content {
+    width: calc(100% - var(--sidebar-closed-width));
+
+    margin-left: var(--sidebar-closed-width);
+}
+
+
+/* =========================================================
+   TABLET
+========================================================= */
+
+@media (max-width: 1100px) {
+
+    .app-container {
+        --sidebar-width: 220px;
+        --sidebar-closed-width: 86px;
+    }
+
+
+    .sidebar {
+        width: var(--sidebar-width);
+
+        padding-left: 13px;
+        padding-right: 13px;
+    }
+
+
+    .main-content {
+        width: calc(100% - var(--sidebar-width));
+
+        margin-left: var(--sidebar-width);
+    }
+
+
+    .sidebar-brand {
+        gap: 10px;
+    }
+
+
+    .sidebar-logo {
+        width: 43px;
+        height: 43px;
+
+        flex-basis: 43px;
+    }
+
+
+    .sidebar-logo img {
+        width: 36px;
+        height: 36px;
+    }
+
+
+    .sidebar-brand-text {
+        font-size: 13px;
+    }
+
+
+    .menu-item {
+        min-height: 40px;
+
+        font-size: 11px;
+    }
+
+
+    .menu-item i:first-child {
+        font-size: 14px;
+    }
+
+
+    .menu-title {
+        font-size: 8px;
+    }
+
+
+    /* CLOSED */
+
+    .app-container.sidebar-closed .sidebar {
+        width: var(--sidebar-closed-width);
+
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+
+
+    .app-container.sidebar-closed .main-content {
+        width: calc(100% - var(--sidebar-closed-width));
+
+        margin-left: var(--sidebar-closed-width);
+    }
+
+
+    .app-container.sidebar-closed .sidebar-logo {
+        width: 56px;
+        height: 56px;
+    }
+
+
+    .app-container.sidebar-closed .sidebar-logo img {
+        width: 43px;
+        height: 43px;
+    }
+
+
+    .app-container.sidebar-closed .menu-item {
+        min-height: 50px;
+    }
+
+
+    .app-container.sidebar-closed .menu-item span {
+        font-size: 8px;
+    }
+
+}
+
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 700px) {
+
+    .app-container {
+        --sidebar-width: 205px;
+        --sidebar-closed-width: 68px;
+    }
+
+
+    .sidebar {
+        width: var(--sidebar-width);
+
+        padding: 10px 11px;
+    }
+
+
+    .main-content {
+        width: calc(100% - var(--sidebar-width));
+
+        margin-left: var(--sidebar-width);
+    }
+
+
+    .sidebar-brand {
+        min-height: 51px;
+
+        gap: 9px;
+    }
+
+
+    .sidebar-logo {
+        width: 40px;
+        height: 40px;
+
+        flex-basis: 40px;
+    }
+
+
+    .sidebar-logo img {
+        width: 33px;
+        height: 33px;
+    }
+
+
+    .sidebar-brand-text {
+        font-size: 12px;
+    }
+
+
+    .sidebar-divider {
+        margin-top: 6px;
+        margin-bottom: 7px;
+    }
+
+
+    .menu-item {
+        min-height: 38px;
+
+        font-size: 10px;
+
+        gap: 6px;
+    }
+
+
+    .menu-item i:first-child {
+        font-size: 13px;
+    }
+
+
+    .menu-title {
+        font-size: 8px;
+
+        margin-top: 5px;
+    }
+
+
+    .submenu-item {
+        min-height: 36px;
+
+        font-size: 10px;
+
+        padding-left: 23px;
+    }
+
+
+    .sidebar-toggle {
+        width: 36px;
+        height: 36px;
+
+        font-size: 13px;
+    }
+
+
+    /* CLOSED */
+
+    .app-container.sidebar-closed .sidebar {
+        width: var(--sidebar-closed-width);
+
+        padding-left: 5px;
+        padding-right: 5px;
+    }
+
+
+    .app-container.sidebar-closed .main-content {
+        width: calc(100% - var(--sidebar-closed-width));
+
+        margin-left: var(--sidebar-closed-width);
+    }
+
+
+    .app-container.sidebar-closed .sidebar-brand {
+        min-height: 60px;
+    }
+
+
+    .app-container.sidebar-closed .sidebar-logo {
+        width: 51px;
+        height: 51px;
+    }
+
+
+    .app-container.sidebar-closed .sidebar-logo img {
+        width: 39px;
+        height: 39px;
+    }
+
+
+    .app-container.sidebar-closed .menu-item {
+        min-height: 49px;
+
+        padding: 3px 0;
+
+        gap: 2px;
+    }
+
+
+    .app-container.sidebar-closed .menu-item i:first-child {
+        font-size: 13px;
+    }
+
+
+    .app-container.sidebar-closed .menu-item span {
+        font-size: 7px;
+
+        line-height: 1.1;
+    }
+
+
+    .app-container.sidebar-closed .menu-title {
+        font-size: 7px;
+    }
+
+
+    .app-container.sidebar-closed .sidebar-toggle {
+        width: 34px;
+        height: 34px;
+
+        font-size: 12px;
+    }
+
+}
+
+
+/* =========================================================
+   SMALL MOBILE
+========================================================= */
+
+@media (max-width: 420px) {
+
+    .app-container {
+        --sidebar-width: 190px;
+        --sidebar-closed-width: 59px;
+    }
+
+
+    .sidebar {
+        width: var(--sidebar-width);
+    }
+
+
+    .main-content {
+        width: calc(100% - var(--sidebar-width));
+
+        margin-left: var(--sidebar-width);
+    }
+
+
+    .sidebar-brand-text {
+        font-size: 11px;
+    }
+
+
+    .menu-item {
+        font-size: 9px;
+    }
+
+
+    /* CLOSED */
+
+    .app-container.sidebar-closed .sidebar {
+        width: var(--sidebar-closed-width);
+    }
+
+
+    .app-container.sidebar-closed .main-content {
+        width: calc(100% - var(--sidebar-closed-width));
+
+        margin-left: var(--sidebar-closed-width);
+    }
+
+
+    .app-container.sidebar-closed .sidebar-logo {
+        width: 45px;
+        height: 45px;
+    }
+
+
+    .app-container.sidebar-closed .sidebar-logo img {
+        width: 35px;
+        height: 35px;
+    }
+
+
+    .app-container.sidebar-closed .menu-item {
+        min-height: 46px;
+    }
+
+
+    .app-container.sidebar-closed .menu-item span {
+        font-size: 7px;
+    }
+
+
+    .app-container.sidebar-closed .sidebar-toggle {
+        width: 32px;
+        height: 32px;
+
+        font-size: 11px;
+    }
+
+}
+
+
+/* =========================================================
+   REDUCED MOTION
+========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+
+    .sidebar,
+    .main-content,
+    .menu-item,
+    .menu-arrow,
+    .submenu-item,
+    .sidebar-toggle {
+        transition: none !important;
+    }
+
+    .master-data-submenu {
+        animation: none !important;
+    }
+
+}
