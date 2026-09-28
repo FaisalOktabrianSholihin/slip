@@ -42,21 +42,21 @@ const addRoleBtn = document.getElementById("addRoleBtn");
 const presetButtons = document.getElementById("presetButtons");
 const selectAllPermissions = document.getElementById("selectAllPermissions");
 
-function menuLabel(key){
+function menuLabel(key) {
   const found = MENU_LIST.find(m => m.key === key);
   return found ? found.label : key;
 }
 
-function getFilteredRoles(){
+function getFilteredRoles() {
   const q = searchInput.value.trim().toLowerCase();
   return ROLES.filter(r => !q || r.nama.toLowerCase().includes(q));
 }
 
-function render(){
+function render() {
   const filtered = getFilteredRoles();
   tableBody.innerHTML = "";
 
-  if (filtered.length === 0){
+  if (filtered.length === 0) {
     emptyState.style.display = "block";
   } else {
     emptyState.style.display = "none";
@@ -96,11 +96,11 @@ function render(){
   footerCount.textContent = `Menampilkan ${filtered.length} dari ${ROLES.length} data`;
 }
 
-function getCheckedKeys(){
+function getCheckedKeys() {
   return Array.from(permissionGrid.querySelectorAll("input[type='checkbox']:checked")).map(cb => cb.value);
 }
 
-function setCheckedKeys(keys){
+function setCheckedKeys(keys) {
   permissionGrid.querySelectorAll("input[type='checkbox']").forEach(cb => {
     cb.checked = keys.includes(cb.value);
   });
@@ -108,13 +108,13 @@ function setCheckedKeys(keys){
 
 /* Cocokkan pilihan checkbox saat ini dengan salah satu preset.
    Kalau tidak cocok dengan preset manapun, anggap "Manual". */
-function syncPresetHighlight(){
+function syncPresetHighlight() {
   const current = getCheckedKeys().slice().sort().join(",");
 
   let matched = "manual";
-  for (const key of Object.keys(ROLE_PRESETS)){
+  for (const key of Object.keys(ROLE_PRESETS)) {
     const presetSorted = ROLE_PRESETS[key].slice().sort().join(",");
-    if (presetSorted === current && current !== ""){
+    if (presetSorted === current && current !== "") {
       matched = key;
       break;
     }
@@ -132,7 +132,7 @@ presetButtons.addEventListener("click", (e) => {
   if (!btn) return;
 
   const preset = btn.dataset.preset;
-  if (preset === "manual"){
+  if (preset === "manual") {
     // Mode manual: tidak mengubah pilihan yang sudah ada, cuma menandai mode aktif.
     presetButtons.querySelectorAll(".preset-btn").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
@@ -144,7 +144,7 @@ presetButtons.addEventListener("click", (e) => {
 });
 
 selectAllPermissions.addEventListener("change", () => {
-  if (selectAllPermissions.checked){
+  if (selectAllPermissions.checked) {
     setCheckedKeys(MENU_LIST.map(m => m.key));
   } else {
     setCheckedKeys([]);
@@ -157,7 +157,7 @@ permissionGrid.addEventListener("change", (e) => {
 });
 
 /* ===== Modal: buka/tutup ===== */
-function buildPermissionGrid(checkedKeys){
+function buildPermissionGrid(checkedKeys) {
   permissionGrid.innerHTML = "";
   MENU_LIST.forEach(menu => {
     const isChecked = checkedKeys.includes(menu.key);
@@ -171,7 +171,7 @@ function buildPermissionGrid(checkedKeys){
   });
 }
 
-function openModal(mode, role){
+function openModal(mode, role) {
   editingId = mode === "edit" ? role.id : null;
   modalTitle.textContent = mode === "edit" ? "Edit Role" : "Tambah Role";
   roleNameInput.value = mode === "edit" ? role.nama : "";
@@ -182,7 +182,7 @@ function openModal(mode, role){
   roleNameInput.focus();
 }
 
-function closeModal(){
+function closeModal() {
   modalOverlay.hidden = true;
   editingId = null;
 }
@@ -200,8 +200,8 @@ document.addEventListener("keydown", (e) => {
 
 modalSave.addEventListener("click", () => {
   const nama = roleNameInput.value.trim();
-  if (!nama){
-    alert("Nama role tidak boleh kosong.");
+  if (!nama) {
+    UI.alert("Nama role tidak boleh kosong.", { type: "warning" });
     roleNameInput.focus();
     return;
   }
@@ -216,7 +216,7 @@ modalSave.addEventListener("click", () => {
     : Api.post('/api/roles', payload);
 
   request.then((saved) => {
-    if (editingId){
+    if (editingId) {
       const role = ROLES.find(r => r.id === editingId);
       Object.assign(role, saved);
     } else {
@@ -225,7 +225,7 @@ modalSave.addEventListener("click", () => {
     closeModal();
     render();
   }).catch((err) => {
-    alert(err.message || 'Gagal menyimpan role.');
+    UI.alert(err.message || 'Gagal menyimpan role.', { type: 'error' });
   }).finally(() => { modalSave.disabled = false; });
 });
 
@@ -238,24 +238,25 @@ tableBody.addEventListener("click", (e) => {
   const role = ROLES.find(r => r.id === id);
   if (!role) return;
 
-  if (btn.dataset.action === "edit"){
+  if (btn.dataset.action === "edit") {
     openModal("edit", role);
-  } else if (btn.dataset.action === "delete"){
-    const confirmed = confirm(`Hapus role "${role.nama}"? Pengguna dengan role ini perlu dipindahkan ke role lain.`);
-    if (confirmed){
+  } else if (btn.dataset.action === "delete") {
+    UI.confirm(`Hapus role "${role.nama}"? Pengguna dengan role ini perlu dipindahkan ke role lain.`, { danger: true, title: 'Hapus Role?' }).then((confirmed) => {
+      if (!confirmed) return;
       Api.delete(`/api/roles/${id}`).then(() => {
         ROLES = ROLES.filter(r => r.id !== id);
         render();
-      }).catch((err) => alert(err.message || 'Gagal menghapus role.'));
-    }
+        UI.toast('Role dihapus.');
+      }).catch((err) => UI.alert(err.message || 'Gagal menghapus role.', { type: 'error' }));
+    });
   }
 });
 
 searchInput.addEventListener("input", render);
 
-function loadRoles(){
+function loadRoles() {
   Api.get('/api/roles').then((rows) => { ROLES = rows; render(); })
-    .catch((err) => { alert('Gagal memuat data role: ' + err.message); });
+    .catch((err) => { UI.alert('Gagal memuat data role: ' + err.message, { type: 'error' }); });
 }
 
 loadRoles();

@@ -34,7 +34,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function toast(message, isError) {
     if (window.showToast) { window.showToast(message, isError); return; }
-    if (isError) alert(message);
+    UI.toast(message, isError ? 'error' : 'success');
   }
 
   function getFiltered() {
@@ -189,6 +189,19 @@ document.addEventListener("DOMContentLoaded", function () {
   const fieldNama = el("fieldNama");
   const fieldEmail = el("fieldEmail");
   const fieldRole = el("fieldRole");
+  const fieldPassword = el("fieldPassword");
+  const fieldPasswordConfirm = el("fieldPasswordConfirm");
+  const pwOptional = el("pwOptional");
+
+  // tombol mata: lihat / sembunyikan password
+  document.querySelectorAll(".dm-pass-toggle").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const input = el(btn.dataset.target);
+      const show = input.type === "password";
+      input.type = show ? "text" : "password";
+      btn.querySelector("i").className = show ? "bi bi-eye-slash" : "bi bi-eye";
+    });
+  });
 
   function openModal(id) {
     state.editingId = id || null;
@@ -202,6 +215,12 @@ document.addEventListener("DOMContentLoaded", function () {
       modalTitle.textContent = "Tambah User";
       userForm.reset();
     }
+    // Password: wajib saat tambah user, opsional saat edit (kosong = tidak diubah).
+    fieldPassword.value = "";
+    fieldPasswordConfirm.value = "";
+    fieldPassword.type = fieldPasswordConfirm.type = "password";
+    document.querySelectorAll(".dm-pass-toggle i").forEach((i) => (i.className = "bi bi-eye"));
+    pwOptional.hidden = !id;
     modalOverlay.classList.add("open");
     fieldNama.focus();
   }
@@ -224,6 +243,29 @@ document.addEventListener("DOMContentLoaded", function () {
       role: fieldRole.value,
     };
 
+    // Validasi password di sisi browser (server tetap memvalidasi ulang).
+    const pw = fieldPassword.value;
+    const pw2 = fieldPasswordConfirm.value;
+    if (!state.editingId && !pw) {
+      UI.alert("Password wajib diisi untuk user baru.", { type: "warning" });
+      fieldPassword.focus();
+      return;
+    }
+    if (pw) {
+      if (pw.length < 8) {
+        UI.alert("Password minimal 8 karakter.", { type: "warning" });
+        fieldPassword.focus();
+        return;
+      }
+      if (pw !== pw2) {
+        UI.alert("Konfirmasi password tidak sama dengan password.", { type: "warning" });
+        fieldPasswordConfirm.focus();
+        return;
+      }
+      payload.password = pw;
+      payload.password_confirmation = pw2;
+    }
+
     const submitBtn = userForm.querySelector('[type="submit"]');
     if (submitBtn) submitBtn.disabled = true;
 
@@ -235,12 +277,10 @@ document.addEventListener("DOMContentLoaded", function () {
       if (state.editingId) {
         const u = users.find((x) => x.id === state.editingId);
         Object.assign(u, saved);
-        toast('Perubahan data user disimpan.');
+        toast(pw ? 'Perubahan data user dan password disimpan.' : 'Perubahan data user disimpan.');
       } else {
         users.push(saved);
-        if (saved.generatedPassword) {
-          alert('User baru dibuat.\nEmail: ' + saved.email + '\nPassword sementara: ' + saved.generatedPassword + '\n\nSampaikan password ini ke user, lalu minta diganti setelah login pertama.');
-        }
+        toast('User baru dibuat.');
       }
       closeModal();
       render();

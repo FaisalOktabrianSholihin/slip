@@ -1,49 +1,49 @@
 document.addEventListener("DOMContentLoaded", function () {
 
-/* =====================================================
-   ANIMASI UANG BERTABURAN
-===================================================== */
+    /* =====================================================
+       ANIMASI UANG BERTABURAN
+    ===================================================== */
 
-const moneyContainer =
-    document.getElementById("moneyContainer");
+    const moneyContainer =
+        document.getElementById("moneyContainer");
 
-if (moneyContainer) {
+    if (moneyContainer) {
 
-    const moneyCount = 25;
+        const moneyCount = 25;
 
-    for (let i = 0; i < moneyCount; i++) {
+        for (let i = 0; i < moneyCount; i++) {
 
-        const money =
-            document.createElement("div");
+            const money =
+                document.createElement("div");
 
-        money.classList.add("money");
+            money.classList.add("money");
 
-        money.textContent = "Rp";
+            money.textContent = "Rp";
 
-        /* Posisi horizontal acak */
-        money.style.left =
-            Math.random() * 100 + "%";
+            /* Posisi horizontal acak */
+            money.style.left =
+                Math.random() * 100 + "%";
 
-        /* Ukuran acak */
-        const scale =
-            0.65 + Math.random() * 0.65;
+            /* Ukuran acak */
+            const scale =
+                0.65 + Math.random() * 0.65;
 
-        money.style.scale = scale;
+            money.style.scale = scale;
 
-        /* Kecepatan acak */
-        const duration =
-            10 + Math.random() * 10;
+            /* Kecepatan acak */
+            const duration =
+                10 + Math.random() * 10;
 
-        money.style.animationDuration =
-            duration + "s";
+            money.style.animationDuration =
+                duration + "s";
 
-        /* Membuat uang tidak jatuh bersamaan */
-        money.style.animationDelay =
-            -(Math.random() * duration) + "s";
+            /* Membuat uang tidak jatuh bersamaan */
+            money.style.animationDelay =
+                -(Math.random() * duration) + "s";
 
-        moneyContainer.appendChild(money);
+            moneyContainer.appendChild(money);
+        }
     }
-}
 
     /* =====================================================
        PASSWORD TOGGLE
@@ -157,8 +157,8 @@ if (moneyContainer) {
 
                 if (!usernameValue) {
 
-                    alert(
-                        "Silakan masukkan username."
+                    UI.alert(
+                        "Silakan masukkan username.", { type: "warning" }
                     );
 
                     username.focus();
@@ -168,8 +168,8 @@ if (moneyContainer) {
 
                 if (!passwordValue) {
 
-                    alert(
-                        "Silakan masukkan password."
+                    UI.alert(
+                        "Silakan masukkan password.", { type: "warning" }
                     );
 
                     password.focus();
@@ -236,7 +236,7 @@ if (moneyContainer) {
                                     Object.values(result.data.errors)[0][0]) ||
                                 result.data.message ||
                                 'Username/email atau password salah.';
-                            alert(pesan);
+                            UI.alert(pesan, { type: 'error', title: 'Login Gagal' });
 
                             loginButton.disabled = false;
                             text.textContent = 'Login';
@@ -247,7 +247,7 @@ if (moneyContainer) {
                         window.location.href = result.data.redirect || '/dashboard';
                     })
                     .catch(function () {
-                        alert('Tidak dapat menghubungi server. Coba lagi.');
+                        UI.alert('Tidak dapat menghubungi server. Coba lagi.', { type: 'error' });
 
                         loginButton.disabled = false;
                         text.textContent = 'Login';
@@ -273,7 +273,7 @@ if (moneyContainer) {
 
                 event.preventDefault();
 
-                alert(
+                UI.alert(
                     "Silakan hubungi administrator untuk reset password."
                 );
             }

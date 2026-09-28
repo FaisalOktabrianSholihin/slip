@@ -36,12 +36,14 @@ document.addEventListener('DOMContentLoaded', function () {
   document.addEventListener('keydown', e => { if (e.key === 'Escape') modal.hidden = true });
 
   document.getElementById('clearLog').addEventListener('click', function () {
-    if (!confirm('Hapus seluruh log aktivitas?')) return;
-    // Catatan: log aktivitas di database TIDAK dihapus otomatis dari sini
-    // (server tidak menyediakan endpoint hapus massal untuk menjaga jejak
-    // audit). Tombol ini hanya menyegarkan tampilan dan mencatat niat
-    // pembersihan sebagai satu entri log baru.
-    SlipStore.addActivity('Hapus log aktivitas', 'Permintaan pembersihan log aktivitas (tidak menghapus data di server).').then(load);
+    UI.confirm('Hapus seluruh log aktivitas?', { danger: true, title: 'Hapus Log Aktivitas?' }).then(function (ok) {
+      if (!ok) return;
+      // Catatan: log aktivitas di database TIDAK dihapus otomatis dari sini
+      // (server tidak menyediakan endpoint hapus massal untuk menjaga jejak
+      // audit). Tombol ini hanya menyegarkan tampilan dan mencatat niat
+      // pembersihan sebagai satu entri log baru.
+      SlipStore.addActivity('Hapus log aktivitas', 'Permintaan pembersihan log aktivitas (tidak menghapus data di server).').then(load);
+    });
   });
 
   load();
