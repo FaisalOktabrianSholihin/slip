@@ -1,27 +1,22 @@
-/* Daftar menu yang bisa diberi hak akses.
-   Sesuaikan key & label ini dengan menu di sidebar.html kamu. */
-const MENU_LIST = [
-  { key: "dashboard", label: "Dashboard" },
-  { key: "master-user", label: "Master Data - User" },
-  { key: "master-divisi", label: "Master Data - Divisi" },
-  { key: "master-jabatan", label: "Master Data - Jabatan" },
-  { key: "master-karyawan", label: "Master Data - Karyawan" },
-  { key: "kirim-slip", label: "Kirim Slip Gaji" },
-  { key: "detail-riwayat", label: "Detail Riwayat" },
-  { key: "setting", label: "Setting" },
-  { key: "role-management", label: "Role Management" },
-];
+/* =========================================================
+   js/role-management.js
+   Hak akses per MENU dan per AKSI (Lihat / Tambah / Ubah / Hapus / dst).
+   Katalog menu & aksi ditarik dari server (GET /api/permissions,
+   App\Support\Permissions) sehingga menu baru cukup ditambah di server.
+   Kunci izin berformat "<menu>.<aksi>", mis. "master-karyawan.view".
+   ========================================================= */
 
-/* Data role ditarik dari database (tabel roles, gajii) lewat
-   RoleController - lihat loadRoles() di bagian bawah file ini. */
+/* Katalog dari server: [{ key, label, actions:[{key,label}] }] */
+let CATALOG = [];
+
+/* Data role ditarik dari database (tabel roles, gajii) lewat RoleController. */
 let ROLES = [];
 
-/* Template hak akses siap pakai. Sesuaikan isinya sesuai kebutuhanmu. */
-const ROLE_PRESETS = {
-  staff: ["dashboard", "detail-riwayat"],
-  admin: ["dashboard", "master-user", "master-divisi", "master-jabatan", "master-karyawan", "kirim-slip", "detail-riwayat"],
-  superadmin: MENU_LIST.map(m => m.key),
-};
+/* Menu yang masuk preset "Admin" (semua aksi pada menu-menu ini). */
+const ADMIN_MODULES = [
+  "dashboard", "master-user", "master-divisi", "master-jabatan", "master-karyawan",
+  "kirim-slip", "detail-riwayat", "template-email",
+];
 
 let editingId = null;
 
@@ -42,9 +37,41 @@ const addRoleBtn = document.getElementById("addRoleBtn");
 const presetButtons = document.getElementById("presetButtons");
 const selectAllPermissions = document.getElementById("selectAllPermissions");
 
-function menuLabel(key) {
-  const found = MENU_LIST.find(m => m.key === key);
-  return found ? found.label : key;
+function escapeHtml(str) {
+  return String(str == null ? "" : str).replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+  }[c]));
+}
+
+/* ---------- Helper katalog ---------- */
+function allKeys() {
+  const keys = [];
+  CATALOG.forEach(m => m.actions.forEach(a => keys.push(m.key + "." + a.key)));
+  return keys;
+}
+
+function moduleKeys(moduleKey) {
+  const m = CATALOG.find(x => x.key === moduleKey);
+  return m ? m.actions.map(a => m.key + "." + a.key) : [];
+}
+
+function getPresets() {
+  const admin = [];
+  ADMIN_MODULES.forEach(k => admin.push(...moduleKeys(k)));
+  return {
+    staff: ["dashboard.view", "detail-riwayat.view"].filter(k => allKeys().includes(k)),
+    admin,
+    superadmin: allKeys(),
+  };
+}
+
+/* Ringkasan izin satu role per menu: [{label, granted, total, aksi:[label]}] */
+function summarize(akses) {
+  const set = new Set(akses || []);
+  return CATALOG.map(m => {
+    const granted = m.actions.filter(a => set.has(m.key + "." + a.key));
+    return { label: m.label, granted: granted.length, total: m.actions.length, aksi: granted.map(a => a.label) };
+  }).filter(x => x.granted > 0);
 }
 
 function getFilteredRoles() {
@@ -63,15 +90,22 @@ function render() {
     filtered.forEach((role, idx) => {
       const tr = document.createElement("tr");
 
-      const visibleTags = role.akses.slice(0, 3).map(k => `<span class="permission-tag">${menuLabel(k)}</span>`).join("");
-      const moreCount = role.akses.length - 3;
-      const moreTag = moreCount > 0 ? `<span class="permission-tag more">+${moreCount} lagi</span>` : "";
+      const ringkas = summarize(role.akses);
+      const tag = (x) => {
+        const count = x.granted < x.total ? ` <em>${x.granted}/${x.total}</em>` : "";
+        return `<span class="permission-tag" title="${escapeHtml(x.aksi.join(", "))}">${escapeHtml(x.label)}${count}</span>`;
+      };
+      const visibleTags = ringkas.slice(0, 3).map(tag).join("");
+      const moreCount = ringkas.length - 3;
+      const moreTitle = ringkas.slice(3).map(x => x.label + " (" + x.aksi.join(", ") + ")").join("\n");
+      const moreTag = moreCount > 0 ? `<span class="permission-tag more" title="${escapeHtml(moreTitle)}">+${moreCount} lagi</span>` : "";
+      const emptyTag = ringkas.length === 0 ? `<span class="permission-tag more">Tanpa akses</span>` : "";
 
       tr.innerHTML = `
         <td>${idx + 1}</td>
-        <td class="role-name">${role.nama}</td>
-        <td class="role-desc">${role.deskripsi || "-"}</td>
-        <td><div class="permission-tags">${visibleTags}${moreTag}</div></td>
+        <td class="role-name">${escapeHtml(role.nama)}</td>
+        <td class="role-desc">${escapeHtml(role.deskripsi || "-")}</td>
+        <td><div class="permission-tags">${visibleTags}${moreTag}${emptyTag}</div></td>
         <td>
           <span class="user-count">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="4"/><path d="M2 21v-2a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v2"/><path d="M17 3.5a4 4 0 0 1 0 7"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg>
@@ -96,24 +130,41 @@ function render() {
   footerCount.textContent = `Menampilkan ${filtered.length} dari ${ROLES.length} data`;
 }
 
+/* ---------- Matriks hak akses di dalam modal ---------- */
+function actionInputs() {
+  return Array.from(permissionGrid.querySelectorAll("input[data-key]"));
+}
+
 function getCheckedKeys() {
-  return Array.from(permissionGrid.querySelectorAll("input[type='checkbox']:checked")).map(cb => cb.value);
+  return actionInputs().filter(cb => cb.checked).map(cb => cb.dataset.key);
 }
 
 function setCheckedKeys(keys) {
-  permissionGrid.querySelectorAll("input[type='checkbox']").forEach(cb => {
-    cb.checked = keys.includes(cb.value);
+  const set = new Set(keys);
+  actionInputs().forEach(cb => { cb.checked = set.has(cb.dataset.key); });
+  refreshModuleStates();
+}
+
+/* Status checkbox "semua" tiap menu: penuh / sebagian / kosong. */
+function refreshModuleStates() {
+  permissionGrid.querySelectorAll(".perm-row").forEach(row => {
+    const boxes = Array.from(row.querySelectorAll("input[data-key]"));
+    const checked = boxes.filter(b => b.checked).length;
+    const master = row.querySelector("input.perm-all");
+    master.checked = checked === boxes.length;
+    master.indeterminate = checked > 0 && checked < boxes.length;
+    row.classList.toggle("has-access", checked > 0);
   });
 }
 
-/* Cocokkan pilihan checkbox saat ini dengan salah satu preset.
-   Kalau tidak cocok dengan preset manapun, anggap "Manual". */
+/* Cocokkan pilihan saat ini dengan salah satu preset; selain itu = "Manual". */
 function syncPresetHighlight() {
   const current = getCheckedKeys().slice().sort().join(",");
+  const presets = getPresets();
 
   let matched = "manual";
-  for (const key of Object.keys(ROLE_PRESETS)) {
-    const presetSorted = ROLE_PRESETS[key].slice().sort().join(",");
+  for (const key of Object.keys(presets)) {
+    const presetSorted = presets[key].slice().sort().join(",");
     if (presetSorted === current && current !== "") {
       matched = key;
       break;
@@ -124,7 +175,7 @@ function syncPresetHighlight() {
     btn.classList.toggle("active", btn.dataset.preset === matched);
   });
 
-  selectAllPermissions.checked = getCheckedKeys().length === MENU_LIST.length;
+  selectAllPermissions.checked = getCheckedKeys().length === allKeys().length && allKeys().length > 0;
 }
 
 presetButtons.addEventListener("click", (e) => {
@@ -139,38 +190,59 @@ presetButtons.addEventListener("click", (e) => {
     return;
   }
 
-  setCheckedKeys(ROLE_PRESETS[preset]);
+  setCheckedKeys(getPresets()[preset] || []);
   syncPresetHighlight();
 });
 
 selectAllPermissions.addEventListener("change", () => {
-  if (selectAllPermissions.checked) {
-    setCheckedKeys(MENU_LIST.map(m => m.key));
-  } else {
-    setCheckedKeys([]);
-  }
+  setCheckedKeys(selectAllPermissions.checked ? allKeys() : []);
   syncPresetHighlight();
 });
 
 permissionGrid.addEventListener("change", (e) => {
-  if (e.target.matches("input[type='checkbox']")) syncPresetHighlight();
+  const input = e.target;
+  if (!input.matches("input[type='checkbox']")) return;
+
+  const row = input.closest(".perm-row");
+
+  if (input.classList.contains("perm-all")) {
+    // "Semua" pada satu menu: centang / kosongkan seluruh aksinya.
+    row.querySelectorAll("input[data-key]").forEach(b => { b.checked = input.checked; });
+  } else if (input.dataset.key.endsWith(".view")) {
+    // Tanpa "Lihat", aksi lain pada menu itu tidak berguna: ikut dikosongkan.
+    if (!input.checked) row.querySelectorAll("input[data-key]").forEach(b => { b.checked = false; });
+  } else if (input.checked) {
+    // Tambah / Ubah / Hapus / dst otomatis menyertakan "Lihat".
+    const view = row.querySelector("input[data-key$='.view']");
+    if (view) view.checked = true;
+  }
+
+  refreshModuleStates();
+  syncPresetHighlight();
 });
 
-/* ===== Modal: buka/tutup ===== */
 function buildPermissionGrid(checkedKeys) {
-  permissionGrid.innerHTML = "";
-  MENU_LIST.forEach(menu => {
-    const isChecked = checkedKeys.includes(menu.key);
-    const label = document.createElement("label");
-    label.className = "permission-item";
-    label.innerHTML = `
-      <input type="checkbox" value="${menu.key}" ${isChecked ? "checked" : ""}>
-      <span>${menu.label}</span>
-    `;
-    permissionGrid.appendChild(label);
-  });
+  const set = new Set(checkedKeys || []);
+  permissionGrid.innerHTML = CATALOG.map(m => {
+    const chips = m.actions.map(a => {
+      const key = m.key + "." + a.key;
+      return `<label class="perm-chip"><input type="checkbox" data-key="${escapeHtml(key)}" ${set.has(key) ? "checked" : ""}><span>${escapeHtml(a.label)}</span></label>`;
+    }).join("");
+
+    return `
+      <div class="perm-row">
+        <label class="perm-module">
+          <input type="checkbox" class="perm-all" aria-label="Pilih semua aksi ${escapeHtml(m.label)}">
+          <span>${escapeHtml(m.label)}</span>
+        </label>
+        <div class="perm-actions">${chips}</div>
+      </div>`;
+  }).join("");
+
+  refreshModuleStates();
 }
 
+/* ===== Modal: buka/tutup ===== */
 function openModal(mode, role) {
   editingId = mode === "edit" ? role.id : null;
   modalTitle.textContent = mode === "edit" ? "Edit Role" : "Tambah Role";
@@ -206,9 +278,8 @@ modalSave.addEventListener("click", () => {
     return;
   }
 
-  const akses = Array.from(permissionGrid.querySelectorAll("input[type='checkbox']:checked")).map(cb => cb.value);
   const deskripsi = roleDescInput.value.trim();
-  const payload = { nama, deskripsi, akses };
+  const payload = { nama, deskripsi, akses: getCheckedKeys() };
 
   modalSave.disabled = true;
   const request = editingId
@@ -224,6 +295,7 @@ modalSave.addEventListener("click", () => {
     }
     closeModal();
     render();
+    UI.toast("Role disimpan.");
   }).catch((err) => {
     UI.alert(err.message || 'Gagal menyimpan role.', { type: 'error' });
   }).finally(() => { modalSave.disabled = false; });
@@ -255,7 +327,9 @@ tableBody.addEventListener("click", (e) => {
 searchInput.addEventListener("input", render);
 
 function loadRoles() {
-  Api.get('/api/roles').then((rows) => { ROLES = rows; render(); })
+  Api.get('/api/permissions')
+    .then((res) => { CATALOG = res.modules || []; return Api.get('/api/roles'); })
+    .then((rows) => { ROLES = rows; render(); })
     .catch((err) => { UI.alert('Gagal memuat data role: ' + err.message, { type: 'error' }); });
 }
 

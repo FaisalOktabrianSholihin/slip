@@ -26,11 +26,7 @@
 
         <div class="menu-group">
 
-            <button
-                type="button"
-                class="menu-item master-data-toggle"
-                id="masterDataToggle"
-            >
+            <button type="button" class="menu-item master-data-toggle" id="masterDataToggle">
                 <i class="bi bi-database-fill"></i>
 
                 <span>Master Data</span>
@@ -41,35 +37,19 @@
 
             <div class="master-data-submenu" id="masterDataSubmenu">
 
-                <a
-                    href="{{ route('data-user') }}"
-                    class="submenu-item"
-                    data-page="data-user.html"
-                >
+                <a href="{{ route('data-user') }}" class="submenu-item" data-page="data-user.html">
                     User
                 </a>
 
-                <a
-                    href="{{ route('data-divisi') }}"
-                    class="submenu-item"
-                    data-page="data-divisi.html"
-                >
+                <a href="{{ route('data-divisi') }}" class="submenu-item" data-page="data-divisi.html">
                     Divisi
                 </a>
 
-                <a
-                    href="{{ route('data-jabatan') }}"
-                    class="submenu-item"
-                    data-page="data-jabatan.html"
-                >
+                <a href="{{ route('data-jabatan') }}" class="submenu-item" data-page="data-jabatan.html">
                     Jabatan
                 </a>
 
-                <a
-                    href="{{ route('data-karyawan') }}"
-                    class="submenu-item"
-                    data-page="data-karyawan.html"
-                >
+                <a href="{{ route('data-karyawan') }}" class="submenu-item" data-page="data-karyawan.html">
                     Karyawan
                 </a>
 
@@ -78,23 +58,20 @@
         </div>
 
 
-        <a
-            href="{{ route('kirim-slip') }}"
-            class="menu-item"
-            data-page="kirim-slip.html"
-        >
+        <a href="{{ route('kirim-slip') }}" class="menu-item" data-page="kirim-slip.html">
             <i class="bi bi-send-fill"></i>
             <span>Kirim Slip Gaji</span>
         </a>
 
 
-        <a
-            href="{{ route('detail-riwayat') }}"
-            class="menu-item"
-            data-page="detail-riwayat.html"
-        >
+        <a href="{{ route('detail-riwayat') }}" class="menu-item" data-page="detail-riwayat.html">
             <i class="bi bi-clock-history"></i>
             <span>Detail Riwayat</span>
+        </a>
+
+        <a href="{{ route('template-email') }}" class="menu-item" data-page="template-email.html">
+            <i class="bi bi-envelope-paper-fill"></i>
+            <span>Template Email</span>
         </a>
 
         <div class="menu-title system-title">
@@ -102,29 +79,17 @@
         </div>
 
 
-        <a
-            href="{{ route('role-management') }}"
-            class="menu-item"
-            data-page="role-management.html"
-        >
+        <a href="{{ route('role-management') }}" class="menu-item" data-page="role-management.html">
             <i class="bi bi-shield-fill"></i>
             <span>Role Management</span>
         </a>
 
-        <a
-            href="{{ route('pengaturan') }}"
-            class="menu-item"
-            data-page="pengaturan.html"
-        >
+        <a href="{{ route('pengaturan') }}" class="menu-item" data-page="pengaturan.html">
             <i class="bi bi-gear-fill"></i>
             <span>Pengaturan</span>
         </a>
 
-        <a
-            href="{{ route('log-aktivitas') }}"
-            class="menu-item"
-            data-page="log-aktivitas.html"
-        >
+        <a href="{{ route('log-aktivitas') }}" class="menu-item" data-page="log-aktivitas.html">
             <i class="bi bi-journal-text"></i>
             <span>Log Aktivitas</span>
         </a>
@@ -132,13 +97,7 @@
     </nav>
 
 
-    <button
-        type="button"
-        class="sidebar-toggle"
-        id="sidebarToggle"
-        aria-label="Tutup sidebar"
-        title="Tutup sidebar"
-    >
+    <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Tutup sidebar" title="Tutup sidebar">
         <i class="bi bi-chevron-left"></i>
     </button>
 

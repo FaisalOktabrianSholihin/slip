@@ -564,7 +564,8 @@
                                 <li>Upload file tersebut melalui form di bawah</li>
                                 <li>Kolom <strong>NIK</strong> harus 16 digit berformat <strong>Teks</strong>;
                                     <strong>Tanggal Lahir</strong> ditulis <strong>dd-mm-yyyy</strong>; <strong>Status
-                                        Aktif</strong> diisi <strong>AKTIF</strong> atau <strong>NONAKTIF</strong></li>
+                                        Aktif</strong> diisi <strong>AKTIF</strong> atau <strong>NONAKTIF</strong>
+                                </li>
                             </ol>
                         </div>
                         <div class="kw-field">

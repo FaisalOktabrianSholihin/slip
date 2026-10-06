@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Models\EmailTemplate;
 use App\Models\Payroll;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
@@ -14,58 +15,67 @@ use Illuminate\Queue\SerializesModels;
  * Mailable: SlipGajiMail
  *
  * Dikirim ke field `email` pada tabel karyawans (database db_indukk).
- * Konfigurasi SMTP diambil otomatis oleh Laravel dari .env
- * (MAIL_MAILER=smtp, MAIL_HOST=smtp.gmail.com, dst) lewat config/mail.php,
- * jadi Mailable ini tidak perlu menyebut kredensial SMTP secara eksplisit.
+ * Konfigurasi SMTP diambil otomatis oleh Laravel dari .env.
  *
- * Menggunakan ShouldQueue disarankan untuk produksi (supaya pengiriman
- * massal / "Kirim Semua Email" di preview-slip.blade.php tidak
- * memblokir request), tapi di sini dibiarkan sinkron agar mudah diuji.
+ * Subject & isi email berasal dari menu "Template Email" (tabel email_templates).
+ * Lampiran PDF sudah DIENKRIPSI dengan password = tanggal lahir karyawan (DDMMYYYY)
+ * oleh SlipController@buatPdfBerpassword, lalu dilampirkan langsung dari memori
+ * (tidak ada file terenkripsi yang tersimpan di disk).
+ *
+ * Catatan: Mailable ini sengaja sinkron (bukan ShouldQueue) karena membawa isi PDF.
  */
 class SlipGajiMail extends Mailable
 {
     use Queueable, SerializesModels;
 
+    protected EmailTemplate $template;
+
     public function __construct(
         public Payroll $payroll,
         public string $namaKaryawan,
-        public ?string $pathFileSlip = null,
-    ) {}
+        public string $pdfBinary,
+        public string $pdfName,
+    ) {
+        $this->template = EmailTemplate::slipGaji();
+    }
+
+    /** Nilai untuk placeholder {nama}, {nik}, {divisi}, {periode}. */
+    protected function variabel(): array
+    {
+        return [
+            'nama' => $this->namaKaryawan,
+            'nik' => $this->payroll->karyawan_nik,
+            'divisi' => (string) $this->payroll->divisi_snapshot,
+            'periode' => EmailTemplate::labelPeriode($this->payroll->periode),
+        ];
+    }
 
     public function envelope(): Envelope
     {
-        $periode = $this->payroll->periode->translatedFormat('F Y');
-
         return new Envelope(
-            subject: "Slip Gaji {$periode} - {$this->namaKaryawan}",
+            subject: $this->template->subjectFor($this->variabel()),
         );
     }
 
     public function content(): Content
     {
+        $teks = $this->template->bodyFor($this->variabel());
+
         return new Content(
             view: 'emails.slip-gaji',
+            text: 'emails.slip-gaji-text',
             with: [
-                'payroll' => $this->payroll,
-                'namaKaryawan' => $this->namaKaryawan,
+                'bodyHtml' => EmailTemplate::keHtml($teks),
+                'bodyText' => $teks,
             ],
         );
     }
 
-    /**
-     * Lampirkan file slip (PDF/PNG/JPG) hasil generate, jika tersedia.
-     * $pathFileSlip diharapkan berupa path absolut di storage, mis.
-     * storage_path('app/private/slip/'.$this->payroll->file_slip).
-     */
     public function attachments(): array
     {
-        if (! $this->pathFileSlip || ! is_file($this->pathFileSlip)) {
-            return [];
-        }
-
         return [
-            Attachment::fromPath($this->pathFileSlip)
-                ->as($this->payroll->file_slip ?? basename($this->pathFileSlip)),
+            Attachment::fromData(fn() => $this->pdfBinary, $this->pdfName)
+                ->withMime('application/pdf'),
         ];
     }
 }

@@ -4,6 +4,7 @@ use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DivisiController;
+use App\Http\Controllers\EmailTemplateController;
 use App\Http\Controllers\JabatanController;
 use App\Http\Controllers\KaryawanController;
 use App\Http\Controllers\RiwayatController;
@@ -46,6 +47,7 @@ Route::middleware(['auth'])->group(function () {
     Route::view('/preview-slip', 'pages.preview-slip')->name('preview-slip');
     Route::view('/detail-riwayat', 'pages.detail-riwayat')->name('detail-riwayat');
 
+    Route::view('/template-email', 'pages.template-email')->name('template-email');
     Route::view('/role-management', 'pages.role-management')->name('role-management');
     Route::view('/pengaturan', 'pages.pengaturan')->name('pengaturan');
     Route::view('/log-aktivitas', 'pages.log-aktivitas')->name('log-aktivitas');
@@ -79,10 +81,15 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
         Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
 
+        Route::get('/permissions', [RoleController::class, 'catalog'])->name('permissions.catalog');
         Route::get('/roles', [RoleController::class, 'index'])->name('roles.index');
         Route::post('/roles', [RoleController::class, 'store'])->name('roles.store');
         Route::put('/roles/{role}', [RoleController::class, 'update'])->name('roles.update');
         Route::delete('/roles/{role}', [RoleController::class, 'destroy'])->name('roles.destroy');
+
+        // Template redaksi email slip gaji (single-row)
+        Route::get('/template-email', [EmailTemplateController::class, 'show'])->name('template-email.show');
+        Route::put('/template-email', [EmailTemplateController::class, 'update'])->name('template-email.update');
 
         // Pengaturan aplikasi (single-row)
         Route::get('/pengaturan', [SettingController::class, 'show'])->name('pengaturan.show');

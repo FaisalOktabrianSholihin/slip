@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 /**
  * Alur E-Slip:
@@ -151,14 +152,14 @@ class SlipController extends Controller
                 $gagal[] = [
                     'baris' => $i + 1,
                     'nik' => $row['nik'],
-                    'alasan' => 'Data gagal disimpan/generate PDF: '.$e->getMessage(),
+                    'alasan' => 'Data gagal disimpan/generate PDF: ' . $e->getMessage(),
                 ];
             }
         }
 
         ActivityLog::catat(
             'Import payroll',
-            'Mengimpor '.count($disimpan).' data payroll periode '.$periode.'.',
+            'Mengimpor ' . count($disimpan) . ' data payroll periode ' . $periode . '.',
             ['total' => count($disimpan), 'gagal' => count($gagal)]
         );
 
@@ -175,7 +176,7 @@ class SlipController extends Controller
             ->where('status', 'siap_kirim')
             ->when(
                 $request->filled('periode'),
-                fn ($q) => $q->where('periode', $request->query('periode'))
+                fn($q) => $q->where('periode', $request->query('periode'))
             )
             ->latest('id')
             ->get();
@@ -187,19 +188,48 @@ class SlipController extends Controller
 
             $config = $p->component_config ?: [
                 'additions' => [
-                    'Tunjangan Jabatan', 'Tunjangan Bansos', 'Tunjangan Managerial',
-                    'Tambahan 4', 'Tambahan 5', 'Tambahan 6', 'Tambahan 7',
-                    'Tambahan 8', 'Tambahan 9', 'Tambahan 10', 'Tambahan 11',
-                    'Tambahan 12', 'Tambahan 13', 'Tambahan 14', 'Tambahan 15',
-                    'Tambahan 16', 'Tambahan 17', 'Tambahan 18', 'Tambahan 19', 'Tambahan 20',
+                    'Tunjangan Jabatan',
+                    'Tunjangan Bansos',
+                    'Tunjangan Managerial',
+                    'Tambahan 4',
+                    'Tambahan 5',
+                    'Tambahan 6',
+                    'Tambahan 7',
+                    'Tambahan 8',
+                    'Tambahan 9',
+                    'Tambahan 10',
+                    'Tambahan 11',
+                    'Tambahan 12',
+                    'Tambahan 13',
+                    'Tambahan 14',
+                    'Tambahan 15',
+                    'Tambahan 16',
+                    'Tambahan 17',
+                    'Tambahan 18',
+                    'Tambahan 19',
+                    'Tambahan 20',
                 ],
                 'deductions' => [
-                    'BP JAMSOSTEK (JHT: 2%); (JP: 1%)', 'BPJS-Kshtn (JK: 1%)',
-                    'BNI (DPLK Simponi)', 'KSU Ke. Mitratani', 'Iuran Anggota SPA',
-                    'BTN (KPR)', 'BRI Cab Jember', 'Potongan 8', 'Potongan 9',
-                    'Potongan 10', 'Potongan 11', 'Potongan 12', 'Potongan 13',
-                    'Potongan 14', 'Potongan 15', 'Potongan 16', 'Potongan 17',
-                    'Potongan 18', 'Potongan 19', 'Potongan 20',
+                    'BP JAMSOSTEK (JHT: 2%); (JP: 1%)',
+                    'BPJS-Kshtn (JK: 1%)',
+                    'BNI (DPLK Simponi)',
+                    'KSU Ke. Mitratani',
+                    'Iuran Anggota SPA',
+                    'BTN (KPR)',
+                    'BRI Cab Jember',
+                    'Potongan 8',
+                    'Potongan 9',
+                    'Potongan 10',
+                    'Potongan 11',
+                    'Potongan 12',
+                    'Potongan 13',
+                    'Potongan 14',
+                    'Potongan 15',
+                    'Potongan 16',
+                    'Potongan 17',
+                    'Potongan 18',
+                    'Potongan 19',
+                    'Potongan 20',
                 ],
             ];
 
@@ -216,7 +246,7 @@ class SlipController extends Controller
                 'noUrut' => $karyawan?->no_absen,
                 'gajiPokok' => (float) $p->gaji_pokok,
                 'date' => optional($p->periode)->format('Y-m-d'),
-                'file' => $p->file_slip ?: 'SLIP_'.$p->karyawan_nik.'_'.optional($p->periode)->format('Y-m').'.pdf',
+                'file' => $p->file_slip ?: 'SLIP_' . $p->karyawan_nik . '_' . optional($p->periode)->format('Y-m') . '.pdf',
                 'pdfUrl' => route('api.slip.pdf', $p),
                 'channel' => $p->channel ?: ($karyawan?->email ? 'email' : ($karyawan?->no_hp ? 'wa' : '')),
                 'componentConfig' => [
@@ -226,11 +256,11 @@ class SlipController extends Controller
             ];
 
             foreach ($tambahan as $i => $item) {
-                $row['tambahan'.($i + 1)] = (float) $item->jumlah;
+                $row['tambahan' . ($i + 1)] = (float) $item->jumlah;
             }
 
             foreach ($potongan as $i => $item) {
-                $row['potongan'.($i + 1)] = (float) $item->jumlah;
+                $row['potongan' . ($i + 1)] = (float) $item->jumlah;
             }
 
             return $row;
@@ -241,13 +271,13 @@ class SlipController extends Controller
     {
         $payroll->load(['items', 'karyawan']);
 
-        if (! $payroll->file_slip || ! Storage::disk('local')->exists('slip/'.$payroll->file_slip)) {
+        if (! $payroll->file_slip || ! Storage::disk('local')->exists('slip/' . $payroll->file_slip)) {
             $filename = $this->generatePdf($payroll);
             $payroll->update(['file_slip' => $filename]);
         }
 
         return response()->file(
-            Storage::disk('local')->path('slip/'.$payroll->file_slip),
+            Storage::disk('local')->path('slip/' . $payroll->file_slip),
             ['Content-Type' => 'application/pdf']
         );
     }
@@ -256,7 +286,7 @@ class SlipController extends Controller
     {
         $payroll->load(['items', 'karyawan']);
 
-        $filename = 'SLIP_'.$payroll->karyawan_nik.'_'.optional($payroll->periode)->format('Ym').'.pdf';
+        $filename = 'SLIP_' . $payroll->karyawan_nik . '_' . optional($payroll->periode)->format('Ym') . '.pdf';
 
         $pdf = Pdf::loadView('pdf.slip-gaji', [
             'payroll' => $payroll,
@@ -264,7 +294,7 @@ class SlipController extends Controller
         ])->setPaper('a4', 'portrait');
 
         Storage::disk('local')->makeDirectory('slip');
-        Storage::disk('local')->put('slip/'.$filename, $pdf->output());
+        Storage::disk('local')->put('slip/' . $filename, $pdf->output());
 
         return $filename;
     }
@@ -296,12 +326,25 @@ class SlipController extends Controller
             return $this->catatHasilKirim($payroll, $karyawan, false, 'Pengiriman WhatsApp belum diimplementasikan');
         }
 
+        // PDF wajib berpassword tanggal lahir (DDMMYYYY). Tanpa tanggal lahir,
+        // slip TIDAK dikirim supaya tidak pernah terkirim tanpa proteksi.
+        if (! $karyawan->tanggal_lahir) {
+            $alasan = 'Tanggal lahir karyawan kosong, PDF tidak dapat diberi password. Lengkapi di Data Karyawan.';
+            $payroll->update(['status' => 'gagal', 'catatan' => $alasan]);
+
+            return $this->catatHasilKirim($payroll, $karyawan, false, $alasan, 'email');
+        }
+
         try {
-            $pathFileSlip = $this->ensurePdf($payroll);
+            $pdf = $this->buatPdfBerpassword($payroll, $karyawan);
 
             Mail::to($karyawan->email)->send(
-                new SlipGajiMail($payroll->fresh(['items']), $karyawan->nama, $pathFileSlip)
+                new SlipGajiMail($payroll->fresh(['items']), $karyawan->nama, $pdf['binary'], $pdf['nama'])
             );
+
+            if (! $payroll->file_slip) {
+                $payroll->update(['file_slip' => $pdf['nama']]);
+            }
 
             $payroll->update([
                 'status' => 'terkirim',
@@ -322,16 +365,55 @@ class SlipController extends Controller
         }
     }
 
+    /**
+     * Buat PDF slip yang dienkripsi dengan password = tanggal lahir karyawan
+     * berformat DDMMYYYY (mis. lahir 15 Agustus 1990 -> 15081990).
+     *
+     * Hasilnya hanya berupa isi (binary) untuk dilampirkan ke email; salinan
+     * di storage (dipakai preview admin) tetap tanpa password. Password
+     * pemilik (owner) diacak sehingga penerima tidak bisa mencabut proteksi;
+     * yang diizinkan hanya membuka dan mencetak.
+     *
+     * @return array{binary: string, nama: string}
+     */
+    protected function buatPdfBerpassword(Payroll $payroll, Karyawan $karyawan): array
+    {
+        $payroll->load(['items']);
+
+        $password = $karyawan->tanggal_lahir->format('dmY');
+
+        $pdf = Pdf::loadView('pdf.slip-gaji', [
+            'payroll' => $payroll,
+            'karyawan' => $karyawan,
+        ])->setPaper('a4', 'portrait');
+
+        $dompdf = $pdf->getDomPDF();
+        $dompdf->render();
+        $dompdf->getCanvas()->get_cpdf()->setEncryption($password, Str::random(32), ['print']);
+
+        $binary = $dompdf->output();
+
+        if (! is_string($binary) || ! str_starts_with($binary, '%PDF')) {
+            throw new \RuntimeException('Gagal membuat PDF berpassword.');
+        }
+
+        return [
+            'binary' => $binary,
+            'nama' => $payroll->file_slip
+                ?: 'SLIP_' . $payroll->karyawan_nik . '_' . optional($payroll->periode)->format('Ym') . '.pdf',
+        ];
+    }
+
     protected function ensurePdf(Payroll $payroll): string
     {
-        if ($payroll->file_slip && Storage::disk('local')->exists('slip/'.$payroll->file_slip)) {
-            return Storage::disk('local')->path('slip/'.$payroll->file_slip);
+        if ($payroll->file_slip && Storage::disk('local')->exists('slip/' . $payroll->file_slip)) {
+            return Storage::disk('local')->path('slip/' . $payroll->file_slip);
         }
 
         $filename = $this->generatePdf($payroll->fresh(['items']));
         $payroll->update(['file_slip' => $filename]);
 
-        return Storage::disk('local')->path('slip/'.$filename);
+        return Storage::disk('local')->path('slip/' . $filename);
     }
 
     protected function catatHasilKirim(
@@ -364,9 +446,10 @@ class SlipController extends Controller
             ->where('status', 'siap_kirim')
             ->where('divisi_snapshot', $divisi)
             ->get()
-            ->filter(fn (Payroll $p) =>
+            ->filter(
+                fn(Payroll $p) =>
                 ! $request->filled('channel') ||
-                $this->resolveChannel($p) === $request->query('channel')
+                    $this->resolveChannel($p) === $request->query('channel')
             );
 
         return response()->json($this->kirimBanyak($payrolls, "Divisi {$divisi}"));
@@ -377,9 +460,10 @@ class SlipController extends Controller
         $payrolls = Payroll::with('karyawan')
             ->where('status', 'siap_kirim')
             ->get()
-            ->filter(fn (Payroll $p) =>
+            ->filter(
+                fn(Payroll $p) =>
                 ! $request->filled('channel') ||
-                $this->resolveChannel($p) === $request->query('channel')
+                    $this->resolveChannel($p) === $request->query('channel')
             );
 
         return response()->json($this->kirimBanyak($payrolls, 'Kirim semua'));
@@ -420,7 +504,7 @@ class SlipController extends Controller
 
         ActivityLog::catat(
             'Pengiriman slip',
-            "{$labelLog}: ".count($terkirim).' berhasil, '.count($gagal).' gagal.',
+            "{$labelLog}: " . count($terkirim) . ' berhasil, ' . count($gagal) . ' gagal.',
             ['berhasil' => count($terkirim), 'gagal' => count($gagal)]
         );
 

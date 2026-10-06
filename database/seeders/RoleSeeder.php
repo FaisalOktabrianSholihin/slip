@@ -3,35 +3,46 @@
 namespace Database\Seeders;
 
 use App\Models\Role;
+use App\Support\Permissions;
 use Illuminate\Database\Seeder;
 
 /**
  * Role default sesuai opsi pada data-user.blade.php
  * (<option value="superadmin">Superadmin</option>, <option value="admin">Admin</option>).
- * Daftar permission di bawah hanya contoh awal; sesuaikan/lengkapi
- * lewat halaman role-management.blade.php setelah aplikasi berjalan.
+ * Hak akses memakai format "modul.aksi" dari App\Support\Permissions
+ * dan bisa disesuaikan lewat halaman Role Management.
  */
 class RoleSeeder extends Seeder
 {
     public function run(): void
     {
-        Role::firstOrCreate(['slug' => 'superadmin'], [
+        Role::updateOrCreate(['slug' => 'superadmin'], [
             'nama' => 'Superadmin',
             'deskripsi' => 'Akses penuh ke seluruh fitur aplikasi.',
-            'permissions' => [
-                'karyawan.view', 'karyawan.create', 'karyawan.edit', 'karyawan.delete',
-                'slip.import', 'slip.kirim', 'riwayat.view',
-                'user.manage', 'role.manage', 'pengaturan.manage', 'log.view',
-            ],
+            'permissions' => Permissions::all(),
         ]);
+
+        // Admin: semua menu operasional (tanpa Role Management, Pengaturan, Log Aktivitas).
+        $admin = [];
+        foreach (
+            [
+                'dashboard',
+                'master-user',
+                'master-divisi',
+                'master-jabatan',
+                'master-karyawan',
+                'kirim-slip',
+                'detail-riwayat',
+                'template-email'
+            ] as $modul
+        ) {
+            $admin = array_merge($admin, Permissions::forModule($modul));
+        }
 
         Role::firstOrCreate(['slug' => 'admin'], [
             'nama' => 'Admin',
             'deskripsi' => 'Mengelola data karyawan dan pengiriman slip gaji.',
-            'permissions' => [
-                'karyawan.view', 'karyawan.create', 'karyawan.edit',
-                'slip.import', 'slip.kirim', 'riwayat.view',
-            ],
+            'permissions' => $admin,
         ]);
     }
 }

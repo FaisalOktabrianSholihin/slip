@@ -33,8 +33,14 @@ class Role extends Model
         return $this->hasMany(User::class);
     }
 
+    /** Izin dalam format baku "modul.aksi" (izin lama otomatis dikonversi). */
+    public function normalizedPermissions(): array
+    {
+        return \App\Support\Permissions::normalize($this->permissions ?? []);
+    }
+
     public function hasPermission(string $key): bool
     {
-        return in_array($key, $this->permissions ?? [], true);
+        return in_array($key, $this->normalizedPermissions(), true);
     }
 }
