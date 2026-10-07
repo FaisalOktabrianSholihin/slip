@@ -123,14 +123,6 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
 
-    /* Kalau sesi login masih aktif (mis. user balik ke login.html
-       lewat tombol back), langsung lempar ke dashboard */
-    if (sessionStorage.getItem("eslip_logged_in") === "true") {
-        window.location.replace("/dashboard");
-        return;
-    }
-
-
     /* =====================================================
        LOGIN
     ===================================================== */

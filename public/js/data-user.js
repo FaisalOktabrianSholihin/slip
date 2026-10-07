@@ -7,6 +7,11 @@
 document.addEventListener("DOMContentLoaded", function () {
 
   let users = [];
+  // Daftar role diambil dari /api/roles supaya role kustom (mis. "PIC SDM"
+  // yang dibuat lewat Role Management) ikut muncul di dropdown ini.
+  // Sebelumnya dropdown ini di-hardcode hanya Superadmin & Admin, sehingga
+  // user tidak bisa diberi role kustom sama sekali.
+  let roles = [];
 
   let state = {
     search: "",
@@ -30,7 +35,8 @@ document.addEventListener("DOMContentLoaded", function () {
     return;
   }
 
-  const roleLabel = { superadmin: "Superadmin", admin: "Admin" };
+  // roleLabel & badgeColor diisi dari `roles` setelah /api/roles dimuat.
+  let roleLabel = {};
 
   function toast(message, isError) {
     if (window.showToast) { window.showToast(message, isError); return; }
@@ -55,11 +61,14 @@ document.addEventListener("DOMContentLoaded", function () {
     return rows;
   }
 
-  function badgeHtml(role) {
-    if (role === "superadmin") {
-      return `<span class="badge badge-superadmin"><span class="badge-dot"></span>Superadmin</span>`;
-    }
-    return `<span class="badge badge-admin"><span class="badge-dot"></span>Admin</span>`;
+  function badgeHtml(u) {
+    const label = escapeHtml(roleLabel[u.role] || u.roleNama || u.role || "-");
+    const cls = u.role === "superadmin" ? "badge-superadmin" : u.role === "admin" ? "badge-admin" : "badge-generic";
+    return `<span class="badge ${cls}"><span class="badge-dot"></span>${label}</span>`;
+  }
+
+  function buildRoleSelect() {
+    fieldRole.innerHTML = roles.map((r) => `<option value="${escapeHtml(r.slug)}">${escapeHtml(r.nama)}</option>`).join("");
   }
 
   function updateStats() {
@@ -88,7 +97,7 @@ document.addEventListener("DOMContentLoaded", function () {
           <td class="col-no">${start + i + 1}</td>
           <td class="col-nama">${escapeHtml(u.nama)}</td>
           <td class="col-email">${escapeHtml(u.email)}</td>
-          <td>${badgeHtml(u.role)}</td>
+          <td>${badgeHtml(u)}</td>
           <td>
             <div class="dm-actions">
               <button class="icon-btn edit" data-action="edit" data-id="${u.id}" aria-label="Edit">
@@ -188,7 +197,7 @@ document.addEventListener("DOMContentLoaded", function () {
   const userForm = el("userForm");
   const fieldNama = el("fieldNama");
   const fieldEmail = el("fieldEmail");
-  const fieldRole = el("fieldRole");
+  const fieldRole = el("fieldRole"); // dibangun oleh buildRoleSelect() dari daftar roles
   const fieldPassword = el("fieldPassword");
   const fieldPasswordConfirm = el("fieldPasswordConfirm");
   const pwOptional = el("pwOptional");
@@ -311,8 +320,14 @@ document.addEventListener("DOMContentLoaded", function () {
     }).catch((err) => { closeConfirm(); toast(err.message, true); });
   });
 
-  // ---- load awal ----
-  Api.get('/api/users').then((rows) => { users = rows; render(); })
+  // ---- load awal: roles dulu (untuk dropdown & label badge), baru users ----
+  Api.get('/api/roles').then((rows) => {
+    roles = rows;
+    roleLabel = {};
+    roles.forEach((r) => { roleLabel[r.slug] = r.nama; });
+    buildRoleSelect();
+    return Api.get('/api/users');
+  }).then((rows) => { users = rows; render(); })
     .catch((err) => {
       tableBody.innerHTML = `<tr><td colspan="5" class="dm-empty">Gagal memuat data: ${escapeHtml(err.message)}</td></tr>`;
     });

@@ -25,6 +25,9 @@ class UserController extends Controller
             'nama' => $u->name,
             'email' => $u->email,
             'role' => $u->role?->slug,
+            // Nama role asli (bisa role kustom seperti "PIC SDM"), dipakai
+            // badge di tabel supaya tidak hardcode superadmin/admin saja.
+            'roleNama' => $u->role?->nama,
         ];
     }
 

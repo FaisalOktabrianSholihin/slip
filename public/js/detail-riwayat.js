@@ -1,5 +1,6 @@
 let DATA = [];
-const tableBody = document.getElementById('tableBody'), emptyState = document.getElementById('emptyState'), searchInput = document.getElementById('searchDivisi'), footerCount = document.getElementById('footerCount');
+const tableBody = document.getElementById('tableBody'), emptyState = document.getElementById('emptyState'), searchInput = document.getElementById('searchDivisi'), footerCount = document.getElementById('footerCount'), entriesPerPage = document.getElementById('entriesPerPage'), pagination = document.getElementById('pagination');
+let riwayatPage = 1;
 const filterTrigger = document.getElementById('filterTrigger'), filterDropdown = document.getElementById('filterDropdown'), filterBulanSelect = document.getElementById('filterBulanSelect'), filterTahunSelect = document.getElementById('filterTahunSelect');
 const filterApply = document.getElementById('filterApply'), filterReset = document.getElementById('filterReset'); const NAMA_BULAN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 let activeMonthFilter = `${filterTahunSelect.value}-${String(filterBulanSelect.value).padStart(2, '0')}`;
@@ -7,8 +8,29 @@ function esc(v) { return SlipUI.esc(v) } function monthKey(t) { const p = String
 function channelLabel(c) { return c === 'wa' ? 'WhatsApp' : 'Email' }
 function getFilteredData() { const q = searchInput.value.trim().toLowerCase(); return DATA.filter(r => (!q || String(r.divisi || '').toLowerCase().includes(q) || String(r.nama || '').toLowerCase().includes(q) || String(r.nik || '').includes(q)) && (!activeMonthFilter || monthKey(r.tanggal) === activeMonthFilter)) }
 function openFilter() { filterDropdown.hidden = false; filterTrigger.setAttribute('aria-expanded', 'true') } function closeFilter() { filterDropdown.hidden = true; filterTrigger.setAttribute('aria-expanded', 'false') }
-filterTrigger.addEventListener('click', e => { e.stopPropagation(); filterDropdown.hidden ? openFilter() : closeFilter() }); document.addEventListener('click', e => { if (!filterDropdown.hidden && !document.getElementById('filterField').contains(e.target)) closeFilter() }); document.addEventListener('keydown', e => { if (e.key === 'Escape') closeFilter() }); filterApply.addEventListener('click', () => { activeMonthFilter = `${filterTahunSelect.value}-${String(filterBulanSelect.value).padStart(2, '0')}`; filterTrigger.title = `${NAMA_BULAN[Number(filterBulanSelect.value) - 1]} ${filterTahunSelect.value}`; filterTrigger.classList.add('is-active'); closeFilter(); render() }); filterReset.addEventListener('click', () => { activeMonthFilter = ''; filterTrigger.classList.remove('is-active'); filterTrigger.title = 'Semua bulan'; closeFilter(); render() });
-function render() { const filtered = getFilteredData(); tableBody.innerHTML = ''; emptyState.style.display = filtered.length ? 'none' : 'block'; filtered.forEach((r, i) => { const tr = document.createElement('tr'); const ok = String(r.status).toLowerCase() === 'berhasil'; const dest = r.channel === 'wa' ? r.wa : r.email; tr.innerHTML = `<td>${i + 1}</td><td><div class="name-cell"><span class="avatar" style="background:${colorFor(r.nama)}">${initials(r.nama)}</span>${esc(r.nama)}</div><small class="nik-sub">NIK ${esc(r.nik || '-')}</small></td><td class="channel-cell"><span class="channel-pill ${r.channel === 'wa' ? 'wa' : 'email'}"><i class="bi ${r.channel === 'wa' ? 'bi-whatsapp' : 'bi-envelope-fill'}"></i>${channelLabel(r.channel)}</span><small>${esc(dest || '-')}</small></td><td><span class="divisi-tag">${esc(r.divisi || '-')}</span></td><td><div class="file-cell"><i class="bi bi-file-earmark-pdf-fill"></i><span class="file-name" title="${esc(r.file || '')}">${esc(r.file || '-')}</span><button class="pdf-btn" data-pdf="${esc(r.id || r.nik || '')}" title="Lihat PDF"><i class="bi bi-eye-fill"></i></button></div></td><td><span class="status-pill ${ok ? 'status-ok' : 'status-bad'}"><span class="dot"></span>${esc(r.status || '-')}</span></td><td class="tanggal-cell"><span class="date">${esc(r.tanggal || '-')}</span><br>${esc(r.jam || '-')}</td>`; tableBody.appendChild(tr) }); footerCount.textContent = `Menampilkan ${filtered.length} dari ${DATA.length} data` }
+filterTrigger.addEventListener('click', e => { e.stopPropagation(); filterDropdown.hidden ? openFilter() : closeFilter() }); document.addEventListener('click', e => { if (!filterDropdown.hidden && !document.getElementById('filterField').contains(e.target)) closeFilter() }); document.addEventListener('keydown', e => { if (e.key === 'Escape') closeFilter() }); filterApply.addEventListener('click', () => { activeMonthFilter = `${filterTahunSelect.value}-${String(filterBulanSelect.value).padStart(2, '0')}`; filterTrigger.title = `${NAMA_BULAN[Number(filterBulanSelect.value) - 1]} ${filterTahunSelect.value}`; filterTrigger.classList.add('is-active'); closeFilter(); riwayatPage = 1; render() }); filterReset.addEventListener('click', () => { activeMonthFilter = ''; filterTrigger.classList.remove('is-active'); filterTrigger.title = 'Semua bulan'; closeFilter(); riwayatPage = 1; render() });
+function render() {
+  const filtered = getFilteredData();
+  const perPage = parseInt(entriesPerPage.value, 10) || 20;
+  const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
+  riwayatPage = Math.min(riwayatPage, totalPages);
+  const start = (riwayatPage - 1) * perPage;
+  const pageRows = filtered.slice(start, start + perPage);
+
+  tableBody.innerHTML = ''; emptyState.style.display = filtered.length ? 'none' : 'block';
+  pageRows.forEach((r, i) => { const tr = document.createElement('tr'); const ok = String(r.status).toLowerCase() === 'berhasil'; const dest = r.channel === 'wa' ? r.wa : r.email; tr.innerHTML = `<td>${start + i + 1}</td><td><div class="name-cell"><span class="avatar" style="background:${colorFor(r.nama)}">${initials(r.nama)}</span>${esc(r.nama)}</div><small class="nik-sub">NIK ${esc(r.nik || '-')}</small></td><td class="channel-cell"><span class="channel-pill ${r.channel === 'wa' ? 'wa' : 'email'}"><i class="bi ${r.channel === 'wa' ? 'bi-whatsapp' : 'bi-envelope-fill'}"></i>${channelLabel(r.channel)}</span><small>${esc(dest || '-')}</small></td><td><span class="divisi-tag">${esc(r.divisi || '-')}</span></td><td><div class="file-cell"><i class="bi bi-file-earmark-pdf-fill"></i><span class="file-name" title="${esc(r.file || '')}">${esc(r.file || '-')}</span><button class="pdf-btn" data-pdf="${esc(r.id || r.nik || '')}" title="Lihat PDF"><i class="bi bi-eye-fill"></i></button></div></td><td><span class="status-pill ${ok ? 'status-ok' : 'status-bad'}"><span class="dot"></span>${esc(r.status || '-')}</span></td><td class="tanggal-cell"><span class="date">${esc(r.tanggal || '-')}</span><br>${esc(r.jam || '-')}</td>`; tableBody.appendChild(tr) });
+
+  footerCount.textContent = filtered.length === 0 ? 'Menampilkan 0 dari 0 data' : `Menampilkan ${start + 1}–${Math.min(start + perPage, filtered.length)} dari ${filtered.length} data`;
+  renderRiwayatPagination(totalPages);
+}
+function renderRiwayatPagination(totalPages) {
+  let html = `<button class="page-btn" data-page="prev"${riwayatPage === 1 ? ' disabled' : ''}>Prev</button>`;
+  for (let p = 1; p <= totalPages; p++) { html += `<button class="page-btn${p === riwayatPage ? ' active' : ''}" data-page="${p}">${p}</button>`; }
+  html += `<button class="page-btn" data-page="next"${riwayatPage === totalPages ? ' disabled' : ''}>Next</button>`;
+  pagination.innerHTML = html;
+}
+pagination.addEventListener('click', e => { const b = e.target.closest('.page-btn'); if (!b || b.disabled) return; const p = b.dataset.page; riwayatPage = p === 'prev' ? riwayatPage - 1 : p === 'next' ? riwayatPage + 1 : parseInt(p, 10); render(); });
+entriesPerPage.addEventListener('change', () => { riwayatPage = 1; render(); });
 function previewPdf(row) {
   // Tampilkan PDF slip asli dari server: file yang sama dengan lampiran email,
   // jadi angkanya pasti sama (bukan lagi dirakit ulang di browser dari row.slip).
@@ -22,7 +44,7 @@ function previewPdf(row) {
   document.body.appendChild(modal);
   modal.addEventListener('click', e => { if (e.target.closest('[data-close]')) modal.remove() });
 }
-tableBody.addEventListener('click', e => { const b = e.target.closest('[data-pdf]'); if (!b) return; const row = DATA.find(x => String(x.id || x.nik) === String(b.dataset.pdf)); if (row) previewPdf(row) }); searchInput.addEventListener('input', render);
+tableBody.addEventListener('click', e => { const b = e.target.closest('[data-pdf]'); if (!b) return; const row = DATA.find(x => String(x.id || x.nik) === String(b.dataset.pdf)); if (row) previewPdf(row) }); searchInput.addEventListener('input', () => { riwayatPage = 1; render(); });
 
 function loadHistory() {
   if (window.SlipStore && SlipStore.getHistory) {
@@ -35,11 +57,13 @@ loadHistory();
 
 document.getElementById('exportBtn').addEventListener('click', async () => { const wb = new ExcelJS.Workbook(), sh = wb.addWorksheet('Riwayat Slip'); sh.columns = [{ header: 'No', key: 'no', width: 6 }, { header: 'Nama', key: 'nama', width: 24 }, { header: 'NIK', key: 'nik', width: 12 }, { header: 'Channel', key: 'channel', width: 15 }, { header: 'Tujuan', key: 'tujuan', width: 30 }, { header: 'Divisi', key: 'divisi', width: 15 }, { header: 'File PDF', key: 'file', width: 45 }, { header: 'Status', key: 'status', width: 14 }, { header: 'Tanggal', key: 'tanggal', width: 14 }, { header: 'Jam', key: 'jam', width: 10 }]; getFilteredData().forEach((r, i) => sh.addRow({ no: i + 1, nama: r.nama, nik: r.nik, channel: channelLabel(r.channel), tujuan: r.channel === 'wa' ? r.wa : r.email, divisi: r.divisi, file: r.file, status: r.status, tanggal: r.tanggal, jam: r.jam })); sh.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } }; sh.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF078B4C' } }; const buf = await wb.xlsx.writeBuffer(), a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([buf])); a.download = 'riwayat-slip.xlsx'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 500); });
 document.getElementById('hapusBtn').addEventListener('click', () => {
-  if (!confirm('Hapus seluruh riwayat slip yang tersimpan?')) return;
-  // Catatan: server TIDAK menyediakan endpoint hapus massal riwayat
-  // (data histori pengiriman sengaja tidak dihapus otomatis demi jejak
-  // audit). Sesuaikan/tambahkan endpoint DELETE khusus bila memang
-  // dibutuhkan.
-  if (window.SlipStore && SlipStore.addActivity) SlipStore.addActivity('Hapus riwayat', 'Permintaan hapus seluruh riwayat slip (tidak menghapus data di server).').then(() => window.location.reload());
-  else window.location.reload();
+  UI.confirm('Hapus seluruh riwayat slip yang tersimpan?', { danger: true, title: 'Hapus Riwayat?' }).then(ok => {
+    if (!ok) return;
+    // Catatan: server TIDAK menyediakan endpoint hapus massal riwayat
+    // (data histori pengiriman sengaja tidak dihapus otomatis demi jejak
+    // audit). Sesuaikan/tambahkan endpoint DELETE khusus bila memang
+    // dibutuhkan.
+    if (window.SlipStore && SlipStore.addActivity) SlipStore.addActivity('Hapus riwayat', 'Permintaan hapus seluruh riwayat slip (tidak menghapus data di server).').then(() => window.location.reload());
+    else window.location.reload();
+  });
 });

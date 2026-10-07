@@ -116,7 +116,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function toast(message, isError) {
     if (window.showToast) { window.showToast(message, isError); return; }
-    if (isError) alert(message);
+    UI.toast(message, isError ? 'error' : 'success');
   }
 
   // ---- search / show entries ----

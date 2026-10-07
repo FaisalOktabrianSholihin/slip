@@ -100,8 +100,7 @@
                 <div class="dm-field">
                     <label for="fieldRole">Role Sistem</label>
                     <select id="fieldRole">
-                        <option value="superadmin">Superadmin</option>
-                        <option value="admin">Admin</option>
+                        <!-- opsi diisi js/data-user.js dari /api/roles (termasuk role kustom) -->
                     </select>
                 </div>
                 <div class="dm-field">

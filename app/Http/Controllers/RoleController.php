@@ -22,6 +22,11 @@ class RoleController extends Controller
     {
         return [
             'id' => $r->id,
+            // Dipakai nilai <option> dropdown role di Data User (lihat
+            // public/js/data-user.js: buildRoleSelect()). Sebelumnya tidak
+            // ikut dikirim, sehingga setiap pilihan di dropdown bernilai
+            // string "undefined" dan selalu ditolak validasi di server.
+            'slug' => $r->slug,
             'nama' => $r->nama,
             'deskripsi' => $r->deskripsi,
             'jumlahPengguna' => $r->users_count ?? $r->users()->count(),

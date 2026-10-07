@@ -717,3 +717,10 @@
   color: #71829A;
   font-size: 12px;
 }
+
+/* Badge generik untuk role kustom (selain Superadmin/Admin) */
+.badge-generic {
+  background: #EEF2F6;
+  color: #3C5068;
+  border: 1px solid #DCE4EC;
+}
