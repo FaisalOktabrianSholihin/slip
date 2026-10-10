@@ -96,7 +96,7 @@
         '<td>' + esc(SlipStore.formatIso(r.date)) + '</td>' +
         '<td class="ps-file">' + esc(r.file) + '</td>' +
         '<td class="ps-preview-cell"><button type="button" class="ps-eye" data-preview="' + esc(r.nik) + '" title="Lihat desain slip gaji" aria-label="Lihat desain slip gaji ' + esc(r.nama) + '"><i class="bi bi-eye-fill"></i></button></td>' +
-      '</tr>';
+        '</tr>';
     }).join('');
   }
 
@@ -110,21 +110,21 @@
 
     return '<section class="ps-group' + (open ? ' is-open' : '') + '" data-divisi="' + esc(divisi) + '" data-channel="' + channel + '">' +
       '<div class="ps-group__head">' +
-        '<button type="button" class="ps-group__toggle" data-toggle aria-expanded="' + open + '" aria-controls="' + bodyId + '">' +
-          '<i class="bi bi-chevron-down ps-chev" aria-hidden="true"></i>' +
-          '<span class="ps-group__name">' + esc(divisi) + '</span>' +
-          '<span class="ps-count">' + items.length + ' karyawan</span>' +
-        '</button>' +
-        '<div class="ps-group__actions">' +
-          '<button type="button" class="ps-mini ' + (isEmail ? 'ps-mini--email' : 'ps-mini--wa') + '" data-send data-channel="' + channel + '" data-divisi="' + esc(divisi) + '" title="Kirim slip divisi ' + esc(divisi) + ' via ' + label + '">' +
-            '<i class="bi ' + icon + '" aria-hidden="true"></i><span>' + label + '</span>' +
-          '</button>' +
-        '</div>' +
+      '<button type="button" class="ps-group__toggle" data-toggle aria-expanded="' + open + '" aria-controls="' + bodyId + '">' +
+      '<i class="bi bi-chevron-down ps-chev" aria-hidden="true"></i>' +
+      '<span class="ps-group__name">' + esc(divisi) + '</span>' +
+      '<span class="ps-count">' + items.length + ' karyawan</span>' +
+      '</button>' +
+      '<div class="ps-group__actions">' +
+      '<button type="button" class="ps-mini ' + (isEmail ? 'ps-mini--email' : 'ps-mini--wa') + '" data-send data-channel="' + channel + '" data-divisi="' + esc(divisi) + '" title="Kirim slip divisi ' + esc(divisi) + ' via ' + label + '">' +
+      '<i class="bi ' + icon + '" aria-hidden="true"></i><span>' + label + '</span>' +
+      '</button>' +
+      '</div>' +
       '</div>' +
       '<div class="ps-group__body" id="' + bodyId + '"' + (open ? '' : ' hidden') + '>' +
-        '<table class="ps-table"><thead><tr>' +
-          '<th class="ps-num">No</th><th>NIK</th><th>Nama Karyawan</th><th>Status</th><th>Tanggal</th><th>File Slip</th><th>Preview</th>' +
-        '</tr></thead><tbody>' + employeeRows(items, channel) + '</tbody></table>' +
+      '<table class="ps-table"><thead><tr>' +
+      '<th class="ps-num">No</th><th>NIK</th><th>Nama Karyawan</th><th>Status</th><th>Tanggal</th><th>File Slip</th><th>Preview</th>' +
+      '</tr></thead><tbody>' + employeeRows(items, channel) + '</tbody></table>' +
       '</div></section>';
   }
 
@@ -140,11 +140,11 @@
 
     return '<section class="ps-channel ' + cls + '" data-channel-section="' + channel + '">' +
       '<div class="ps-channel__head"><div class="ps-channel__identity">' +
-        '<span class="ps-channel__icon"><i class="bi ' + icon + '" aria-hidden="true"></i></span>' +
-        '<div><h2>' + title + '</h2><p>' + subtitle + '</p></div>' +
+      '<span class="ps-channel__icon"><i class="bi ' + icon + '" aria-hidden="true"></i></span>' +
+      '<div><h2>' + title + '</h2><p>' + subtitle + '</p></div>' +
       '</div><span class="ps-channel__total">' + total + ' karyawan</span></div>' +
       '<div class="ps-channel__groups">' +
-        (groups.length ? groups.map((g, i) => groupHtml(g[0], g[1], i, channel)).join('') : '<p class="ps-none">Tidak ada data untuk channel ini.</p>') +
+      (groups.length ? groups.map((g, i) => groupHtml(g[0], g[1], i, channel)).join('') : '<p class="ps-none">Tidak ada data untuk channel ini.</p>') +
       '</div></section>';
   }
 
@@ -289,56 +289,56 @@
 
   function showSlipPreview(row) {
     const cfg = row.componentConfig || { additions: [], deductions: [] };
-    const additions = Array.isArray(cfg.additions) && cfg.additions.length > 0 ? cfg.additions : ['Gaji Pokok','Tunjangan Jabatan','Tunjangan Bansos','Tunjangan Managerial','Tambahan 5','Tambahan 6','Tambahan 7','Tambahan 8','Tambahan 9','Tambahan 10'];
-    const deductions = Array.isArray(cfg.deductions) && cfg.deductions.length > 0 ? cfg.deductions : ['BP JAMSOSTEK (JHT: 2%); (JP: 1%)','BPJS-Kshtn (JK: 1%)','BNI (DPLK Simponi)','KSU Ke. Mitratani','Iuran Anggota SPA','BTN (KPR)','BRI Cab Jember','Potongan 8','Potongan 9','Potongan 10'];
+    const additions = Array.isArray(cfg.additions) && cfg.additions.length > 0 ? cfg.additions : ['Tunjangan Jabatan', 'Tunjangan Bansos', 'Tunjangan Managerial', 'Tambahan 4', 'Tambahan 5', 'Tambahan 6', 'Tambahan 7', 'Tambahan 8', 'Tambahan 9', 'Tambahan 10', 'Tambahan 11', 'Tambahan 12', 'Tambahan 13', 'Tambahan 14', 'Tambahan 15', 'Tambahan 16', 'Tambahan 17', 'Tambahan 18', 'Tambahan 19', 'Tambahan 20'];
+    const deductions = Array.isArray(cfg.deductions) && cfg.deductions.length > 0 ? cfg.deductions : ['BP JAMSOSTEK (JHT: 2%); (JP: 1%)', 'BPJS-Kshtn (JK:1%)', 'BNI (DPLK Simponi)', 'KSU Kel. Mitratani', 'Iuran Anggota SPA', 'BTN (KPR)', 'BRI Cab Jember (Briguna)', 'BRI Unit Serut (Golbertap)', 'Bank BSM (Pembiayaan Syariah)', 'Pengembalian Gaji (Kary Renbang)', 'Iuran IIKB', 'Potongan Kopkar PTPN I R5', 'Pengembalian Bonus Thn 2023', 'Potongan Dapenbun', 'Potongan gaji (Masjid)', 'Potongan Waring', 'Pembelian Pengembalian DPU', 'Potongan 18', 'Potongan 19', 'Potongan 20'];
     const addValues = [];
-    for (let i = 1; i <= 20; i++) if (Number(row['tambahan'+i] || 0) > 0) addValues.push([additions[i-1] || ('Tambahan '+i), row['tambahan'+i]]);
+    for (let i = 1; i <= 20; i++) if (Number(row['tambahan' + i] || 0) > 0) addValues.push([additions[i - 1] || ('Tambahan ' + i), row['tambahan' + i]]);
     // Gaji Pokok selalu tampil sebagai komponen utama, bukan tambahan 1 dari Excel.
     const deductionsWithValues = [];
-    for (let i = 1; i <= 20; i++) if (Number(row['potongan'+i] || 0) > 0) deductionsWithValues.push([deductions[i-1] || ('Potongan '+i), row['potongan'+i]]);
-    const totalTambahan = addValues.reduce((n,x)=>n+Number(x[1]||0),0);
-    const totalPotongan = deductionsWithValues.reduce((n,x)=>n+Number(x[1]||0),0);
+    for (let i = 1; i <= 20; i++) if (Number(row['potongan' + i] || 0) > 0) deductionsWithValues.push([deductions[i - 1] || ('Potongan ' + i), row['potongan' + i]]);
+    const totalTambahan = addValues.reduce((n, x) => n + Number(x[1] || 0), 0);
+    const totalPotongan = deductionsWithValues.reduce((n, x) => n + Number(x[1] || 0), 0);
     const gross = Number(row.gajiPokok || 0) + totalTambahan;
     const bersih = gross - totalPotongan;
-    const initials = String(row.nama || 'K').trim().split(/\s+/).slice(0,2).map(x=>x[0]).join('').toUpperCase();
+    const initials = String(row.nama || 'K').trim().split(/\s+/).slice(0, 2).map(x => x[0]).join('').toUpperCase();
     const modal = document.createElement('div');
     modal.className = 'ps-slip-modal';
     modal.innerHTML = '<div class="ps-slip-modal__backdrop" data-close></div>' +
       '<div class="ps-slip-modal__dialog ps-slip-modal__dialog--wide" role="dialog" aria-modal="true" aria-label="Preview slip gaji">' +
-        '<div class="ps-slip-modal__head"><div><span class="ps-slip-modal__eyebrow">DOKUMEN RAHASIA • SLIP GAJI</span><h2>PT Mitratani Dua Tujuh</h2></div><div class="ps-slip-modal__head-actions">'+(row.pdfUrl?'<button type="button" class="ps-slip-pdf" data-pdf title="Generate / buka PDF"><i class="bi bi-file-earmark-pdf-fill"></i><span>PDF</span></button>':'')+'<button type="button" class="ps-slip-modal__close" data-close><i class="bi bi-x-lg"></i></button></div></div>' +
-        '<div class="ps-slip">' +
-          '<div class="ps-slip__brand"><div class="ps-slip__logo"><img src="'+(window.ESLIP_LOGO_URL || 'assets/logo.png')+'" alt="Logo Mitratani" onerror="this.style.display=\'none\'"><span>'+esc(initials)+'</span></div><div><strong>PT MITRATANI DUA TUJUH</strong><span>SLIP GAJI KARYAWAN</span></div><div class="ps-slip__secret"><i class="bi bi-shield-lock-fill"></i> RAHASIA</div></div>' +
-          '<div class="ps-slip__number"><span>NOMOR URUT</span><strong>' + esc(row.noUrut || '-') + '</strong><small>' + esc(SlipStore.formatIso(row.date)) + '</small></div>' +
-          '<div class="ps-slip__employee-grid">' +
-            '<div><span>Nama</span><strong>' + esc(row.nama || '-') + '</strong></div><div><span>NIK</span><strong>' + esc(row.nik || '-') + '</strong></div>' +
-            '<div><span>Pangkat / Golongan</span><strong>' + esc(row.pangkat || '-') + '</strong></div><div><span>Jabatan</span><strong>' + esc(row.jabatan || '-') + '</strong></div>' +
-            '<div><span>Rekening</span><strong>' + esc(row.rekening || '-') + '</strong></div><div><span>Divisi</span><strong>' + esc(row.divisi || '-') + '</strong></div>' +
-          '</div>' +
-          '<div class="ps-slip__columns">' +
-            '<section><div class="ps-slip__section-title">PENERIMAAN</div><div class="ps-slip__line"><span>Gaji Pokok</span><strong>' + money(row.gajiPokok) + '</strong></div>' +
-              addValues.map(x=>'<div class="ps-slip__line"><span>'+esc(x[0])+'</span><strong>'+money(x[1])+'</strong></div>').join('') +
-              '<div class="ps-slip__line ps-slip__subtotal"><span>Total Penerimaan</span><strong>'+money(gross)+'</strong></div></section>' +
-            '<section><div class="ps-slip__section-title">POTONGAN</div>' +
-              (deductionsWithValues.length ? deductionsWithValues.map(x=>'<div class="ps-slip__line"><span>'+esc(x[0])+'</span><strong class="ps-slip__minus">- '+money(x[1])+'</strong></div>').join('') : '<div class="ps-slip__no-deduction">Tidak ada potongan</div>') +
-              '<div class="ps-slip__line ps-slip__subtotal"><span>Total Potongan</span><strong class="ps-slip__minus">- '+money(totalPotongan)+'</strong></div></section>' +
-          '</div>' +
-          '<div class="ps-slip__net"><div><span>TAKE HOME PAY</span><small>Jumlah yang diterima setelah seluruh potongan</small></div><strong>' + money(bersih) + '</strong></div>' +
-          '<div class="ps-slip__footer"><span>Dokumen ini dibuat secara otomatis dari data payroll yang telah divalidasi terhadap master Karyawan.</span><span><i class="bi bi-shield-lock-fill"></i> CONFIDENTIAL</span></div>' +
-        '</div>' +
+      '<div class="ps-slip-modal__head"><div><span class="ps-slip-modal__eyebrow">DOKUMEN RAHASIA • SLIP GAJI</span><h2>PT Mitratani Dua Tujuh</h2></div><div class="ps-slip-modal__head-actions">' + (row.pdfUrl ? '<button type="button" class="ps-slip-pdf" data-pdf title="Generate / buka PDF"><i class="bi bi-file-earmark-pdf-fill"></i><span>PDF</span></button>' : '') + '<button type="button" class="ps-slip-modal__close" data-close><i class="bi bi-x-lg"></i></button></div></div>' +
+      '<div class="ps-slip">' +
+      '<div class="ps-slip__brand"><div class="ps-slip__logo"><img src="' + (window.ESLIP_LOGO_URL || 'assets/logo.png') + '" alt="Logo Mitratani" onerror="this.style.display=\'none\'"><span>' + esc(initials) + '</span></div><div><strong>PT MITRATANI DUA TUJUH</strong><span>SLIP GAJI KARYAWAN</span></div><div class="ps-slip__secret"><i class="bi bi-shield-lock-fill"></i> RAHASIA</div></div>' +
+      '<div class="ps-slip__number"><span>NOMOR URUT</span><strong>' + esc(row.noUrut || '-') + '</strong><small>' + esc(SlipStore.formatIso(row.date)) + '</small></div>' +
+      '<div class="ps-slip__employee-grid">' +
+      '<div><span>Nama</span><strong>' + esc(row.nama || '-') + '</strong></div><div><span>NIK</span><strong>' + esc(row.nik || '-') + '</strong></div>' +
+      '<div><span>Pangkat / Golongan</span><strong>' + esc(row.pangkat || '-') + '</strong></div><div><span>Jabatan</span><strong>' + esc(row.jabatan || '-') + '</strong></div>' +
+      '<div><span>Rekening</span><strong>' + esc(row.rekening || '-') + '</strong></div><div><span>Divisi</span><strong>' + esc(row.divisi || '-') + '</strong></div>' +
+      '</div>' +
+      '<div class="ps-slip__columns">' +
+      '<section><div class="ps-slip__section-title">PENERIMAAN</div><div class="ps-slip__line"><span>Gaji Pokok</span><strong>' + money(row.gajiPokok) + '</strong></div>' +
+      addValues.map(x => '<div class="ps-slip__line"><span>' + esc(x[0]) + '</span><strong>' + money(x[1]) + '</strong></div>').join('') +
+      '<div class="ps-slip__line ps-slip__subtotal"><span>Total Penerimaan</span><strong>' + money(gross) + '</strong></div></section>' +
+      '<section><div class="ps-slip__section-title">POTONGAN</div>' +
+      (deductionsWithValues.length ? deductionsWithValues.map(x => '<div class="ps-slip__line"><span>' + esc(x[0]) + '</span><strong class="ps-slip__minus">- ' + money(x[1]) + '</strong></div>').join('') : '<div class="ps-slip__no-deduction">Tidak ada potongan</div>') +
+      '<div class="ps-slip__line ps-slip__subtotal"><span>Total Potongan</span><strong class="ps-slip__minus">- ' + money(totalPotongan) + '</strong></div></section>' +
+      '</div>' +
+      '<div class="ps-slip__net"><div><span>TAKE HOME PAY</span><small>Jumlah yang diterima setelah seluruh potongan</small></div><strong>' + money(bersih) + '</strong></div>' +
+      '<div class="ps-slip__footer"><span>Dokumen ini dibuat secara otomatis dari data payroll yang telah divalidasi terhadap master Karyawan.</span><span><i class="bi bi-shield-lock-fill"></i> CONFIDENTIAL</span></div>' +
+      '</div>' +
       '</div>';
     document.body.appendChild(modal);
-    requestAnimationFrame(()=>modal.classList.add('is-open'));
-    const close=()=>{modal.classList.remove('is-open');setTimeout(()=>modal.remove(),180);};
-    modal.addEventListener('click',e=>{
-      if(e.target.closest('[data-close]')) { close(); return; }
-      const pdfBtn=e.target.closest('[data-pdf]');
-      if(pdfBtn && row.pdfUrl) {
-        pdfBtn.disabled=true;
+    requestAnimationFrame(() => modal.classList.add('is-open'));
+    const close = () => { modal.classList.remove('is-open'); setTimeout(() => modal.remove(), 180); };
+    modal.addEventListener('click', e => {
+      if (e.target.closest('[data-close]')) { close(); return; }
+      const pdfBtn = e.target.closest('[data-pdf]');
+      if (pdfBtn && row.pdfUrl) {
+        pdfBtn.disabled = true;
         window.open(row.pdfUrl, '_blank', 'noopener');
-        setTimeout(()=>{if(document.body.contains(pdfBtn))pdfBtn.disabled=false;},800);
+        setTimeout(() => { if (document.body.contains(pdfBtn)) pdfBtn.disabled = false; }, 800);
       }
     });
-    const escKey=e=>{if(e.key==='Escape'){document.removeEventListener('keydown',escKey);close();}};document.addEventListener('keydown',escKey);
+    const escKey = e => { if (e.key === 'Escape') { document.removeEventListener('keydown', escKey); close(); } }; document.addEventListener('keydown', escKey);
   }
 
   /* Accordion + tombol preview + kirim per divisi. */

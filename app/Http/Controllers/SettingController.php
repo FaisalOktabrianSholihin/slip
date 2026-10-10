@@ -20,6 +20,10 @@ class SettingController extends Controller
             'retentionMonths' => $s->retention_months,
             'emailEnabled' => (bool) $s->email_enabled,
             'waEnabled' => (bool) $s->wa_enabled,
+            'senderName' => $s->sender_name,
+            'senderEmail' => $s->sender_email,
+            'dashboardKpis' => $s->dashboard_kpis ?? ['total','status','masaKerja5'],
+            'componentConfig' => ['additions'=>$s->payroll_component_additions, 'deductions'=>$s->payroll_component_deductions],
         ];
     }
 
@@ -34,6 +38,10 @@ class SettingController extends Controller
             'retentionMonths' => ['required', 'integer', 'min:1', 'max:60'],
             'emailEnabled' => ['required', 'boolean'],
             'waEnabled' => ['required', 'boolean'],
+            'senderName' => ['required','string','max:100'],
+            'senderEmail' => ['required','email','max:150'],
+            'dashboardKpis' => ['nullable','array','max:3'],
+            'dashboardKpis.*' => ['in:total,status,masaKerja5'],
         ]);
 
         $setting = Setting::current();
@@ -41,6 +49,9 @@ class SettingController extends Controller
             'retention_months' => $data['retentionMonths'],
             'email_enabled' => $data['emailEnabled'],
             'wa_enabled' => $data['waEnabled'],
+            'sender_name' => $data['senderName'],
+            'sender_email' => $data['senderEmail'],
+            'dashboard_kpis' => $data['dashboardKpis'] ?? ['total','status','masaKerja5'],
         ]);
 
         ActivityLog::catat(

@@ -10,42 +10,45 @@
 <?php $__env->startSection('content'); ?>
 
     <div class="dashboard">
-        <!-- KPI -->
+        <!-- Ringkasan utama: dua kartu -->
         <section class="kpi-grid">
-            <article class="kpi-card">
-                <svg aria-hidden="true" class="kpi-icon" viewbox="0 0 24 24">
-                    <circle cx="12" cy="8" r="3.2"></circle>
-                    <path d="M5.5 20v-1.5a4.5 4.5 0 0 1 4.5-4.5h4a4.5 4.5 0 0 1 4.5 4.5V20"></path>
-                    <circle cx="4.5" cy="10" r="2"></circle>
-                    <circle cx="19.5" cy="10" r="2"></circle>
-                </svg>
-                <div><strong id="kpiTotal">0</strong><span>Total Karyawan</span></div>
+            <article class="kpi-card kpi-total-card">
+                <div class="kpi-main-icon" aria-hidden="true">
+                    <svg class="kpi-icon" viewBox="0 0 24 24">
+                        <circle cx="12" cy="8" r="3.2"></circle>
+                        <path d="M5.5 20v-1.5a4.5 4.5 0 0 1 4.5-4.5h4a4.5 4.5 0 0 1 4.5 4.5V20"></path>
+                        <circle cx="4.5" cy="10" r="2"></circle>
+                        <circle cx="19.5" cy="10" r="2"></circle>
+                    </svg>
+                </div>
+                <div class="kpi-total-content">
+                    <div class="kpi-total-heading">
+                        <div><span class="kpi-eyebrow">RINGKASAN SDM</span><span class="kpi-label">Total Karyawan</span>
+                        </div><strong id="kpiTotal">0</strong>
+                    </div>
+                    <div class="kpi-status-breakdown" id="kpiStatusBreakdown"
+                        aria-label="Jumlah karyawan berdasarkan status">
+                        <div class="status-metric"><span class="status-dot dot-pkwtt"></span><span
+                                class="status-name">PKWTT</span><strong data-status="pkwtt">0</strong></div>
+                        <div class="status-metric"><span class="status-dot dot-pkwt"></span><span
+                                class="status-name">PKWT</span><strong data-status="pkwt">0</strong></div>
+                        <div class="status-metric"><span class="status-dot dot-hl"></span><span
+                                class="status-name">PKWT-HL</span><strong data-status="pkwt_hl">0</strong></div>
+                        <div class="status-metric"><span class="status-dot dot-os"></span><span
+                                class="status-name">PKWT-OS</span><strong data-status="pkwt_os">0</strong></div>
+                        <div class="status-metric"><span class="status-dot dot-penugasan"></span><span
+                                class="status-name">Penugasan</span><strong data-status="penugasan">0</strong></div>
+                    </div>
+                </div>
             </article>
-            <article class="kpi-card">
-                <svg aria-hidden="true" class="kpi-icon" viewbox="0 0 24 24">
-                    <circle cx="12" cy="12" r="3"></circle>
-                    <path
-                        d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1">
-                    </path>
-                </svg>
-                <div><strong id="kpiPkwt">0</strong><span>Total Karyawan PKWT</span></div>
-            </article>
-            <article class="kpi-card">
-                <svg aria-hidden="true" class="kpi-icon" viewbox="0 0 24 24">
-                    <circle cx="12" cy="7" r="2.5"></circle>
-                    <circle cx="6" cy="10" r="2"></circle>
-                    <circle cx="18" cy="10" r="2"></circle>
-                    <path d="M3 21c0-3 2-5 4-5M21 21c0-3-2-5-4-5M8 20c0-2.5 1.8-4.5 4-4.5s4 2 4 4.5"></path>
-                </svg>
-                <div><strong id="kpiHl">0</strong><span>Total Karyawan HL</span></div>
-            </article>
-            <article class="kpi-card">
-                <svg aria-hidden="true" class="kpi-icon" viewbox="0 0 24 24">
-                    <circle cx="12" cy="8" r="3"></circle>
-                    <path d="M12 3v1M12 12v1M7 8h1M16 8h1M8.5 4.5l.7.7M14.8 10.8l.7.7M15.5 4.5l-.7.7M9.2 10.8l-.7.7"></path>
-                    <path d="M4 21v-6l8-4 8 4v6z"></path>
-                </svg>
-                <div><strong id="kpiMasaKerja">0</strong><span>Masa Kerja &gt; 5 TH</span></div>
+            <article class="kpi-card kpi-tenure-card" id="kpiMasaKerjaCard">
+                <div class="kpi-main-icon tenure-icon" aria-hidden="true"><svg class="kpi-icon" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="9"></circle>
+                        <path d="M12 7v5l3 2"></path>
+                    </svg></div>
+                <div class="tenure-content"><span class="kpi-eyebrow">LOYALITAS KARYAWAN</span><span class="kpi-label">Masa
+                        Kerja &gt; 5 Tahun</span><strong id="kpiMasaKerja">0</strong><span class="tenure-caption"></span>
+                </div>
             </article>
         </section>
         <!-- CHARTS -->
@@ -71,13 +74,6 @@
                     <thead>
                         <tr>
                             <th>Komposisi SDM</th>
-                            <th>25–35</th>
-                            <th>36–45</th>
-                            <th>&gt;45</th>
-                            <th>S1</th>
-                            <th>DIII</th>
-                            <th>SMA</th>
-                            <th>SMP</th>
                         </tr>
                     </thead>
                     <tbody></tbody>

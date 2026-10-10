@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', function () {
-  const retention = document.getElementById('retentionMonths'), email = document.getElementById('emailEnabled'), wa = document.getElementById('waEnabled'), notice = document.getElementById('saveNotice');
+  const retention = document.getElementById('retentionMonths'), email = document.getElementById('emailEnabled'), wa = document.getElementById('waEnabled'), notice = document.getElementById('saveNotice'), senderName = document.getElementById('senderName'), senderEmail = document.getElementById('senderEmail'), kpiStatus = document.getElementById('kpiStatus'), kpiMasaKerja = document.getElementById('kpiMasaKerja');
 
   function load() {
     Promise.all([
@@ -12,6 +12,10 @@ document.addEventListener('DOMContentLoaded', function () {
       retention.value = String(s.retentionMonths);
       email.checked = s.emailEnabled;
       wa.checked = s.waEnabled;
+      if (senderName) senderName.value = s.senderName || 'E-Slip Gaji Mitratani';
+      if (senderEmail) senderEmail.value = s.senderEmail || '';
+      if (kpiStatus) kpiStatus.checked = (s.dashboardKpis || ['total', 'status', 'masaKerja5']).includes('status');
+      if (kpiMasaKerja) kpiMasaKerja.checked = (s.dashboardKpis || ['total', 'status', 'masaKerja5']).includes('masaKerja5');
       document.getElementById('historyCount').textContent = results[1].length;
       document.getElementById('payrollCount').textContent = results[2].length;
       document.getElementById('activityCount').textContent = results[3].length;
@@ -37,7 +41,8 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   document.getElementById('saveBtn').addEventListener('click', function () {
-    const payload = { retentionMonths: Number(retention.value), emailEnabled: email.checked, waEnabled: wa.checked };
+    const payload = { retentionMonths: Number(retention.value), emailEnabled: email.checked, waEnabled: wa.checked, senderName: senderName?.value.trim(), senderEmail: senderEmail?.value.trim(), dashboardKpis: ['total', ...(kpiStatus?.checked ? ['status'] : []), ...(kpiMasaKerja?.checked ? ['masaKerja5'] : [])] };
+    if (!payload.senderName || !payload.senderEmail) { show('Nama dan alamat email pengirim wajib diisi.', true); return; }
     SlipStore.saveSettings(payload).then(function (s) {
       refreshStats();
       show('Pengaturan berhasil disimpan.');
@@ -47,7 +52,7 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   document.getElementById('resetBtn').addEventListener('click', function () {
-    retention.value = '1'; email.checked = true; wa.checked = true;
+    retention.value = '1'; email.checked = true; wa.checked = true; if (senderName) senderName.value = 'E-Slip Gaji Mitratani'; if (kpiStatus) kpiStatus.checked = true; if (kpiMasaKerja) kpiMasaKerja.checked = true;
     show('Nilai default dipulihkan di form. Klik Simpan Pengaturan untuk menerapkannya.');
   });
 

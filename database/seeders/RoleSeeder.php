@@ -27,6 +27,7 @@ class RoleSeeder extends Seeder
         foreach (
             [
                 'dashboard',
+                'demografi',
                 'master-user',
                 'master-divisi',
                 'master-jabatan',
@@ -39,7 +40,7 @@ class RoleSeeder extends Seeder
             $admin = array_merge($admin, Permissions::forModule($modul));
         }
 
-        Role::firstOrCreate(['slug' => 'admin'], [
+        Role::updateOrCreate(['slug' => 'admin'], [
             'nama' => 'Admin',
             'deskripsi' => 'Mengelola data karyawan dan pengiriman slip gaji.',
             'permissions' => $admin,

@@ -2,15 +2,25 @@
 function initDashboard(data) {
 
 
-  /* ===== 4 kotak KPI di atas (dari database) ===== */
+  /* ===== Dua kartu ringkasan utama ===== */
   (function renderKpi() {
     const kpi = data.kpi || {};
     const fmt = n => Number(n || 0).toLocaleString('id-ID');
-    [['kpiTotal', kpi.total], ['kpiPkwt', kpi.pkwt], ['kpiHl', kpi.hl], ['kpiMasaKerja', kpi.masaKerja5]]
-      .forEach(function (x) {
-        const el = document.getElementById(x[0]);
-        if (el) el.textContent = fmt(x[1]);
-      });
+    const totalEl = document.getElementById('kpiTotal');
+    const tenureEl = document.getElementById('kpiMasaKerja');
+    if (totalEl) totalEl.textContent = fmt(kpi.total ?? data.totalKaryawan ?? 0);
+    if (tenureEl) tenureEl.textContent = fmt(kpi.masaKerja5 ?? 0);
+    const statusRows = Array.isArray(kpi.status) ? kpi.status : [];
+    const aliases = {
+      pkwtt: ['pkwtt', 'PKWTT'], pkwt: ['pkwt', 'PKWT'],
+      pkwt_hl: ['pkwt_hl', 'PKWT-HL'], pkwt_os: ['pkwt_os', 'PKWT-OS'],
+      penugasan: ['penugasan', 'Karyawan Penugasan']
+    };
+    Object.entries(aliases).forEach(([key, variants]) => {
+      const node = document.querySelector('[data-status="' + key + '"]');
+      const row = statusRows.find(item => variants.includes(item.key) || variants.includes(item.label));
+      if (node) node.textContent = fmt(row ? row.jumlah : 0);
+    });
   })();
 
   /* ===== Warna dari CSS variables ===== */
@@ -36,7 +46,7 @@ function initDashboard(data) {
   };
 
   /* ===== Chart batang + garis persentase ===== */
-  function comboChart(canvasId, labels, jumlah) {
+  function comboChart(canvasId, labels, jumlah, barColor) {
     const pct = persen(jumlah);
     const maxVal = Math.max(...jumlah);
     new Chart(document.getElementById(canvasId), {
@@ -47,7 +57,7 @@ function initDashboard(data) {
             type: 'bar',
             label: 'Jumlah',
             data: jumlah,
-            backgroundColor: C.bar,
+            backgroundColor: barColor || C.bar,
             borderRadius: 4,
             maxBarThickness: 44,
             yAxisID: 'y',
@@ -96,17 +106,17 @@ function initDashboard(data) {
     });
   }
 
-  comboChart('chartPendidikan', data.pendidikan.labels, data.pendidikan.jumlah);
-  comboChart('chartUsia', data.usia.labels, data.usia.jumlah);
+  comboChart('chartPendidikan', data.pendidikan.labels, data.pendidikan.jumlah, '#4F83CC');
+  comboChart('chartUsia', data.usia.labels, data.usia.jumlah, '#43A67A');
 
   /* ===== Donut status ===== */
   new Chart(document.getElementById('chartStatus'), {
     type: 'doughnut',
     data: {
-      labels: ['PKWT', 'HL'],
+      labels: data.status.labels || [],
       datasets: [{
-        data: [data.status.pkwt, data.status.hl],
-        backgroundColor: [C.dark, C.bar],
+        data: data.status.jumlah || [],
+        backgroundColor: ['#176B4D', '#43A67A', '#E6B655', '#4F83CC', '#8D6CAB'],
         borderWidth: 0
       }]
     },
@@ -129,7 +139,10 @@ function initDashboard(data) {
   (function renderMatrix() {
     const tbody = document.querySelector('#matrixTable tbody');
     const tfoot = document.querySelector('#matrixTable tfoot');
-    const cols = data.matriks[0].nilai.length;
+    const headers = data.matrixHeaders || [...data.usia.labels, ...data.pendidikan.labels];
+    const head = document.querySelector('#matrixTable thead tr');
+    head.innerHTML = '<th>Komposisi SDM</th>' + headers.map((h, i) => `<th style="background:${i < data.usia.labels.length ? '#E8F3ED' : '#EAF0FA'}">${h}</th>`).join('');
+    const cols = data.matriks.length ? data.matriks[0].nilai.length : 0;
     const totals = Array(cols).fill(0);
 
     data.matriks.forEach(row => {
@@ -175,12 +188,15 @@ Api.get('/api/dashboard-summary')
     initDashboard({
       pendidikan: { labels: ['SD', 'SLTP', 'SLTA', 'PT'], jumlah: [0, 0, 0, 0] },
       usia: { labels: ['25–35', '36–45', '>45'], jumlah: [0, 0, 0] },
-      status: { pkwt: 0, hl: 0 },
+      status: { labels: ['PKWTT', 'PKWT', 'PKWT-HL', 'PKWT-OS', 'Karyawan Penugasan'], jumlah: [0, 0, 0, 0, 0] },
+      matrixHeaders: ['25–35', '36–45', '>45', 'S1', 'DIII', 'SMA', 'SMP'],
+      kpi: { dashboardKpis: ['total', 'status', 'masaKerja5'], total: 0, masaKerja5: 0 },
       matriks: [
-        { nama: 'Karyawan Tetap', nilai: [0, 0, 0, 0, 0, 0, 0] },
-        { nama: 'Karyawan Penugasan', nilai: [0, 0, 0, 0, 0, 0, 0] },
+        { nama: 'PKWTT', nilai: [0, 0, 0, 0, 0, 0, 0] },
         { nama: 'PKWT', nilai: [0, 0, 0, 0, 0, 0, 0] },
-        { nama: 'Honorer', nilai: [0, 0, 0, 0, 0, 0, 0] }
+        { nama: 'PKWT-HL', nilai: [0, 0, 0, 0, 0, 0, 0] },
+        { nama: 'PKWT-OS', nilai: [0, 0, 0, 0, 0, 0, 0] },
+        { nama: 'Karyawan Penugasan', nilai: [0, 0, 0, 0, 0, 0, 0] }
       ]
     });
   });

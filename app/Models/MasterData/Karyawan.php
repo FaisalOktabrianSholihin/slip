@@ -70,22 +70,14 @@ class Karyawan extends Model
     public static function normalisasiStatus(?string $nilai): ?string
     {
         $s = mb_strtolower(trim((string) $nilai));
-        if ($s === '') {
-            return null;
-        }
-        if (str_contains($s, 'pkwt') || str_contains($s, 'kontrak')) {
-            return 'pkwt';
-        }
-        if (str_contains($s, 'penugasan') || str_contains($s, 'tugas')) {
-            return 'penugasan';
-        }
-        if (str_contains($s, 'honor') || str_contains($s, 'harian') || preg_match('/^hl\b/', $s)) {
-            return 'honorer';
-        }
-        if (str_contains($s, 'tetap')) {
-            return 'tetap';
-        }
-
+        if ($s === '') return null;
+        $compact = preg_replace('/[^a-z0-9]+/', '', $s);
+        if (str_contains($compact, 'pkwthl') || str_contains($compact, 'pkwt-hl')) return 'pkwt_hl';
+        if (str_contains($compact, 'pkwtos') || str_contains($compact, 'pkwt-os')) return 'pkwt_os';
+        if (str_contains($s, 'penugasan') || str_contains($s, 'tugas')) return 'penugasan';
+        if (str_contains($s, 'pkwtt') || str_contains($s, 'tetap')) return 'pkwtt';
+        if (str_contains($s, 'pkwt') || str_contains($s, 'kontrak')) return 'pkwt';
+        if (str_contains($s, 'honor') || str_contains($s, 'harian') || preg_match('/^hl\b/', $s)) return 'pkwt_hl';
         return null;
     }
 

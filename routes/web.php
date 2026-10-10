@@ -3,6 +3,7 @@
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DemografiController;
 use App\Http\Controllers\DivisiController;
 use App\Http\Controllers\EmailTemplateController;
 use App\Http\Controllers\JabatanController;
@@ -40,6 +41,7 @@ Route::middleware(['auth'])->group(function () {
     // bisa dibuka siapa pun yang sudah login, apa pun role-nya, supaya tidak
     // ada role yang justru terkunci total begitu login.
     Route::view('/dashboard', 'pages.dashboard')->name('dashboard');
+    Route::view('/demografi', 'pages.demografi')->name('demografi')->middleware('permission:demografi.view');
 
     Route::view('/data-user', 'pages.data-user')->name('data-user')->middleware('permission:master-user.view');
     Route::view('/data-divisi', 'pages.data-divisi')->name('data-divisi')->middleware('permission:master-divisi.view');
@@ -104,6 +106,9 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/log-aktivitas', [ActivityLogController::class, 'index'])->name('log-aktivitas.index')->middleware('permission:log-aktivitas.view');
         // Dipakai halaman lain (mis. kirim-slip.js) utk mencatat aktivitas sendiri; tidak digerbang permission log-aktivitas.
         Route::post('/log-aktivitas', [ActivityLogController::class, 'store'])->name('log-aktivitas.store');
+
+        Route::get('/demografi', [DemografiController::class, 'show'])->name('demografi.show')->middleware('permission:demografi.view');
+        Route::put('/demografi', [DemografiController::class, 'update'])->name('demografi.update')->middleware('permission:demografi.edit');
 
         // Dashboard ringkasan: selaras dengan halaman Dashboard, tidak digerbang izin.
         Route::get('/dashboard-summary', [DashboardController::class, 'summary'])->name('dashboard.summary');

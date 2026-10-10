@@ -26,6 +26,7 @@ class Permissions
     {
         return [
             'dashboard' => ['Dashboard', ['view']],
+            'demografi' => ['Demografi', ['view', 'edit']],
             'master-user' => ['Master Data - User', ['view', 'create', 'edit', 'delete']],
             'master-divisi' => ['Master Data - Divisi', ['view', 'create', 'edit', 'delete']],
             'master-jabatan' => ['Master Data - Jabatan', ['view', 'create', 'edit', 'delete']],

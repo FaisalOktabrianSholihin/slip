@@ -227,9 +227,10 @@
                                 <label for="kwFStatusPegawai">Status Pegawai</label>
                                 <select class="kw-select" id="kwFStatusPegawai" name="statusPegawai">
                                     <option value="">-- Pilih --</option>
-                                    <option value="tetap">Karyawan Tetap</option>
+                                    <option value="pkwtt">PKWTT</option>
                                     <option value="pkwt">PKWT</option>
-                                    <option value="honorer">Honorer</option>
+                                    <option value="pkwt_hl">PKWT-HL</option>
+                                    <option value="pkwt_os">PKWT-OS</option>
                                     <option value="penugasan">Karyawan Penugasan</option>
                                 </select>
                             </div>

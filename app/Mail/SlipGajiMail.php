@@ -4,6 +4,7 @@ namespace App\Mail;
 
 use App\Models\EmailTemplate;
 use App\Models\Payroll;
+use App\Models\Setting;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Attachment;
@@ -52,7 +53,9 @@ class SlipGajiMail extends Mailable
 
     public function envelope(): Envelope
     {
+        $setting = Setting::current();
         return new Envelope(
+            from: new \Illuminate\Mail\Mailables\Address($setting->sender_email ?: config('mail.from.address'), $setting->sender_name ?: config('mail.from.name')),
             subject: $this->template->subjectFor($this->variabel()),
         );
     }

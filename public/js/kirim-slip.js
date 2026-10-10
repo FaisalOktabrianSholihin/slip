@@ -29,9 +29,12 @@
     'Tambahan 16', 'Tambahan 17', 'Tambahan 18', 'Tambahan 19', 'Tambahan 20'
   ];
   const DEDUCT_DEFAULTS = [
-    'BP JAMSOSTEK (JHT: 2%); (JP: 1%)', 'BPJS-Kshtn (JK: 1%)', 'BNI (DPLK Simponi)',
-    'KSU Ke. Mitratani', 'Iuran Anggota SPA', 'BTN (KPR)', 'BRI Cab Jember',
-    'Potongan 8', 'Potongan 9', 'Potongan 10', 'Potongan 11', 'Potongan 12', 'Potongan 13', 'Potongan 14', 'Potongan 15', 'Potongan 16', 'Potongan 17', 'Potongan 18', 'Potongan 19', 'Potongan 20'
+    'BP JAMSOSTEK (JHT: 2%); (JP: 1%)', 'BPJS-Kshtn (JK:1%)', 'BNI (DPLK Simponi)',
+    'KSU Kel. Mitratani', 'Iuran Anggota SPA', 'BTN (KPR)', 'BRI Cab Jember (Briguna)',
+    'BRI Unit Serut (Golbertap)', 'Bank BSM (Pembiayaan Syariah)', 'Pengembalian Gaji (Kary Renbang)',
+    'Iuran IIKB', 'Potongan Kopkar PTPN I R5', 'Pengembalian Bonus Thn 2023', 'Potongan Dapenbun',
+    'Potongan gaji (Masjid)', 'Potongan Waring', 'Pembelian Pengembalian DPU',
+    'Potongan 18', 'Potongan 19', 'Potongan 20'
   ];
   const CFG_KEY = 'eslip_payroll_components';
   const MAX_COMPONENTS = 20;
@@ -63,6 +66,12 @@
       const x = JSON.parse(localStorage.getItem(CFG_KEY) || '{}');
       let additions = Array.isArray(x.additions) ? x.additions.filter(v => String(v).trim()).map(v => String(v).trim()) : ADD_DEFAULTS.slice();
       let deductions = Array.isArray(x.deductions) ? x.deductions.filter(v => String(v).trim()).map(v => String(v).trim()) : DEDUCT_DEFAULTS.slice();
+      // Perbarui label default lama, tetapi jangan menimpa nama komponen yang sudah dikustomisasi pengguna.
+      const oldAdd = ['Tambahan 1', 'Tambahan 2', 'Tambahan 3'];
+      additions = additions.map((v, i) => oldAdd[i] && v === oldAdd[i] ? ADD_DEFAULTS[i] : v);
+      const oldDeduct = ['Potongan 1', 'Potongan 2', 'Potongan 3', 'KSU Ke. Mitratani', 'Iuran Anggota SPA', 'BTN (KPR)', 'BRI Cab Jember', 'Potongan 8', 'Potongan 9', 'Potongan 10', 'Potongan 11', 'Potongan 12', 'Potongan 13', 'Potongan 14', 'Potongan 15', 'Potongan 16', 'Potongan 17'];
+      const oldDeductVariants = ['BP JAMSOSTEK (JHT: 2%); (JP: 1%)', 'BPJS-Kshtn (JK: 1%)', 'BNI (DPLK Simponi)'];
+      deductions = deductions.map((v, i) => (oldDeduct[i] && v === oldDeduct[i]) || (i < 3 && oldDeductVariants[i] === v) ? DEDUCT_DEFAULTS[i] : v);
       // Versi frontend lama menyimpan "Gaji Pokok" sebagai komponen tambahan.
       // Gaji Pokok sekarang tetap sebagai field wajib terpisah.
       additions = additions.filter(v => v.toLowerCase() !== 'gaji pokok').slice(0, MAX_COMPONENTS);
@@ -139,6 +148,10 @@
       if (k === 'nik') col.nik = n; else if (k === 'nama') col.nama = n; else if (k === 'gapok' || k === 'gajipokok') col.gajiPokok = n;
       const ma = k.match(/^tambahan(\d+)$/); if (ma) col['tambahan' + ma[1]] = n;
       const mp = k.match(/^potongan(\d+)$/); if (mp) col['potongan' + mp[1]] = n;
+      // Header template dapat memakai nama komponen (mis. Tunjangan Jabatan),
+      // sehingga cocokkan juga berdasarkan urutan komponen yang aktif.
+      cfg.additions.forEach((name, i) => { if (k === norm(name)) col['tambahan' + (i + 1)] = n; });
+      cfg.deductions.forEach((name, i) => { if (k === norm(name)) col['potongan' + (i + 1)] = n; });
     });
     if (!col.nik || !col.nama || !col.gajiPokok) return { fatal: 'Header Excel tidak sesuai. Kolom wajib: NIK, Nama, dan Gaji Pokok.' };
     const errors = [], rows = [], seen = {};
