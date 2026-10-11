@@ -49,6 +49,7 @@ class KaryawanController extends Controller
             'ktp' => $k->no_ktp,
             'hp' => $k->no_hp,
             'alamat' => $k->alamat,
+            'updatedAt' => optional($k->updated_at)->toIso8601String(),
 
             'jenisKelamin' => $k->jenis_kelamin,
             'agama' => $k->pribadi?->agama,
@@ -280,6 +281,10 @@ class KaryawanController extends Controller
                     'pendidikan' => $a['pendidikan'] ?? null,
                 ]);
             }
+
+            // Tanda "terakhir diperbarui": naikkan updated_at walau yang berubah
+            // hanya tabel turunan (pribadi, pendidikan, bank, anak, dst).
+            $karyawan->touch();
 
             return $karyawan;
         });

@@ -4,7 +4,7 @@
 @section('page-subtitle', 'Atur kelompok usia dan tingkat pendidikan yang ditampilkan di dashboard')
 @section('page-icon', 'bi-people')
 @push('styles')
-    <link rel="stylesheet" href="{{ asset('css/pengaturan.css') }}?v=20261009-2">
+    <link rel="stylesheet" href="{{ asset('css/pengaturan.css') }}?v=20261010-1">
 @endpush
 @section('content')
     <div class="settings-page demografi-page">
@@ -23,6 +23,11 @@
                     <h2>Rentang usia</h2>
                 </div><button class="primary-btn" id="addAge" type="button">+ Tambah rentang</button>
             </div>
+            <div class="demo-warning" role="note"><i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+                <div><strong>Perhatian:</strong> Mengubah rentang usia akan <b>mempengaruhi tampilan Dashboard</b> (grafik
+                    Usia Karyawan dan Matriks Komposisi SDM). Nama rentang dibuat otomatis dari angka minimum dan maksimum.
+                </div>
+            </div>
             <div id="ageRanges"></div>
         </section>
         <section class="settings-card">
@@ -31,6 +36,10 @@
                     <h2>Kategori pendidikan</h2>
                     <p>Contoh: S1, DIII, SMA, SMP. Maksimal 5 kategori.</p>
                 </div><button class="primary-btn" id="addEducation" type="button">+ Tambah pendidikan</button>
+            </div>
+            <div class="demo-warning" role="note"><i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+                <div><strong>Perhatian:</strong> Mengubah kategori pendidikan akan <b>mempengaruhi tampilan Dashboard</b>
+                    (grafik Pendidikan Karyawan dan Matriks Komposisi SDM).</div>
             </div>
             <div id="educationLevels"></div>
         </section>

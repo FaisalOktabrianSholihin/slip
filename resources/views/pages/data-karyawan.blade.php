@@ -46,6 +46,8 @@
                 </div>
             </div>
         </section>
+        <p class="kw-updated" id="kwLastUpdate"><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> Memuat
+            tanggal pembaruan data...</p>
         <!-- Tabel -->
         <section aria-label="Daftar karyawan" class="kw-card">
             <div class="kw-toolbar">
@@ -61,7 +63,7 @@
                 <div class="kw-search">
                     <i aria-hidden="true" class="fa-solid fa-magnifying-glass"></i>
                     <input aria-label="Cari karyawan" autocomplete="off" class="kw-input" id="kwSearch"
-                        placeholder="Cari nama, email, WA, NIK, atau divisi" type="search" />
+                        placeholder="Cari apa saja: nama, NIK, KTP, HP, alamat, jabatan, bank, dll" type="search" />
                 </div>
                 <div class="kw-filter">
                     <button aria-expanded="false" aria-haspopup="true" aria-label="Filter"

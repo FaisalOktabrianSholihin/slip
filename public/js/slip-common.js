@@ -73,6 +73,15 @@
     return Api.get('/api/slip/preview');
   }
 
+  /* Hapus preview (slip berstatus siap_kirim) yang belum dikirim. */
+  function deletePreview(id) {
+    return Api.delete('/api/slip/preview/' + encodeURIComponent(id));
+  }
+
+  function deleteAllPreview() {
+    return Api.delete('/api/slip/preview');
+  }
+
   function getHistory() {
     return Api.get('/api/riwayat');
   }
@@ -96,6 +105,8 @@
     addActivity: addActivity,
     importPayroll: importPayroll,
     getPreviewRows: getPreviewRows,
+    deletePreview: deletePreview,
+    deleteAllPreview: deleteAllPreview,
     getHistory: getHistory,
     sendChannel: sendChannel,
     formatIso: formatIso
@@ -153,17 +164,17 @@
       el.innerHTML =
         '<div class="ks-modal__backdrop" data-close></div>' +
         '<div class="ks-modal__dialog ks-modal__dialog--sm" role="dialog" aria-modal="true" aria-labelledby="' + uid + '">' +
-          '<div class="ks-modal__head">' +
-            '<h2 id="' + uid + '">' + esc(opts.title || '') + '</h2>' +
-            '<button type="button" class="ks-modal__close" data-close aria-label="Tutup"><i class="bi bi-x-lg"></i></button>' +
-          '</div>' +
-          '<div class="ks-modal__body">' + (opts.html || '') + '</div>' +
-          '<div class="ks-modal__foot">' +
-            buttons.map((b) =>
-              '<button type="button" class="ks-btn ks-btn--' + (b.kind === 'primary' ? 'primary' : 'outline') +
-              '" data-value="' + esc(b.value) + '">' + esc(b.label) + '</button>'
-            ).join('') +
-          '</div>' +
+        '<div class="ks-modal__head">' +
+        '<h2 id="' + uid + '">' + esc(opts.title || '') + '</h2>' +
+        '<button type="button" class="ks-modal__close" data-close aria-label="Tutup"><i class="bi bi-x-lg"></i></button>' +
+        '</div>' +
+        '<div class="ks-modal__body">' + (opts.html || '') + '</div>' +
+        '<div class="ks-modal__foot">' +
+        buttons.map((b) =>
+          '<button type="button" class="ks-btn ks-btn--' + (b.kind === 'primary' ? 'primary' : 'outline') +
+          '" data-value="' + esc(b.value) + '">' + esc(b.label) + '</button>'
+        ).join('') +
+        '</div>' +
         '</div>';
       document.body.appendChild(el);
 

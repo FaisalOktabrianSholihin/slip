@@ -22,6 +22,7 @@
   const suggestEl = $('#psSuggest');
   const btnAll = $('#psSendAll');
   const btnAllWa = $('#psSendAllWa');
+  const btnDeleteAll = $('#psDeleteAll');
 
   let rows = [];
   let historyCache = [];
@@ -95,7 +96,8 @@
         '<td>' + statusBadge(status) + '</td>' +
         '<td>' + esc(SlipStore.formatIso(r.date)) + '</td>' +
         '<td class="ps-file">' + esc(r.file) + '</td>' +
-        '<td class="ps-preview-cell"><button type="button" class="ps-eye" data-preview="' + esc(r.nik) + '" title="Lihat desain slip gaji" aria-label="Lihat desain slip gaji ' + esc(r.nama) + '"><i class="bi bi-eye-fill"></i></button></td>' +
+        '<td class="ps-preview-cell"><button type="button" class="ps-eye" data-preview="' + esc(r.nik) + '" title="Lihat desain slip gaji" aria-label="Lihat desain slip gaji ' + esc(r.nama) + '"><i class="bi bi-eye-fill"></i></button>' +
+        '<button type="button" class="ps-eye ps-del" data-del="' + esc(r.payrollId) + '" title="Hapus preview slip ini" aria-label="Hapus preview slip ' + esc(r.nama) + '"><i class="bi bi-trash3-fill"></i></button></td>' +
         '</tr>';
     }).join('');
   }
@@ -123,7 +125,7 @@
       '</div>' +
       '<div class="ps-group__body" id="' + bodyId + '"' + (open ? '' : ' hidden') + '>' +
       '<table class="ps-table"><thead><tr>' +
-      '<th class="ps-num">No</th><th>NIK</th><th>Nama Karyawan</th><th>Status</th><th>Tanggal</th><th>File Slip</th><th>Preview</th>' +
+      '<th class="ps-num">No</th><th>NIK</th><th>Nama Karyawan</th><th>Status</th><th>Tanggal</th><th>File Slip</th><th>Aksi</th>' +
       '</tr></thead><tbody>' + employeeRows(items, channel) + '</tbody></table>' +
       '</div></section>';
   }
@@ -176,6 +178,7 @@
     const hasWa = rows.some((r) => r.channel === 'wa');
     btnAll.disabled = busy || !hasEmail || !settings.emailEnabled;
     btnAllWa.disabled = busy || !hasWa || !settings.waEnabled;
+    if (btnDeleteAll) btnDeleteAll.disabled = busy || !rows.length;
     btnAll.title = settings.emailEnabled ? 'Kirim semua melalui Email' : 'Pengiriman Email dinonaktifkan di Pengaturan';
     btnAllWa.title = settings.waEnabled ? 'Kirim semua melalui WhatsApp' : 'Pengiriman WhatsApp dinonaktifkan di Pengaturan';
     listEl.querySelectorAll('[data-send]').forEach((b) => {
@@ -215,6 +218,7 @@
     const settings = settingsCache;
     btnAll.disabled = on || !settings.emailEnabled;
     btnAllWa.disabled = on || !settings.waEnabled;
+    if (btnDeleteAll) btnDeleteAll.disabled = on || !rows.length;
     listEl.querySelectorAll('[data-send]').forEach((b) => { b.disabled = on || (b.getAttribute('data-channel') === 'email' ? !settings.emailEnabled : !settings.waEnabled); });
   }
 
@@ -341,8 +345,49 @@
     const escKey = e => { if (e.key === 'Escape') { document.removeEventListener('keydown', escKey); close(); } }; document.addEventListener('keydown', escKey);
   }
 
+  /* Hapus preview (batal / tidak jadi dikirim). Data payroll yang belum dikirim dihapus dari sistem. */
+  async function deleteOne(payrollId) {
+    if (busy) return;
+    const row = rows.find((r) => String(r.payrollId) === String(payrollId));
+    if (!row) return;
+    const answer = await SlipUI.dialog({
+      title: 'Hapus preview slip?',
+      html: '<p class="ks-result__lead">Slip <strong>' + esc(row.nama) + '</strong> (NIK ' + esc(row.nik) + ') akan dihapus dari preview dan tidak akan dikirim.</p><p class="ks-hint">Untuk membuatnya lagi, import ulang file Excel gaji.</p>',
+      buttons: [{ label: 'Batal', kind: 'outline', value: 'cancel' }, { label: 'Hapus', kind: 'primary', value: 'delete' }]
+    });
+    if (answer !== 'delete') return;
+    setBusy(true);
+    try {
+      await SlipStore.deletePreview(row.payrollId);
+      SlipUI.toast('Preview slip ' + row.nama + ' dihapus.');
+    } catch (err) {
+      SlipUI.toast('Gagal menghapus preview: ' + err.message, 'error');
+    }
+    setBusy(false); await load(); render();
+  }
+
+  async function deleteAll() {
+    if (busy || !rows.length) return;
+    const answer = await SlipUI.dialog({
+      title: 'Hapus semua preview?',
+      html: '<p class="ks-result__lead"><strong>' + rows.length + ' slip</strong> yang belum dikirim akan dihapus dari preview.</p><p class="ks-hint">Gunakan ini bila import dibatalkan atau salah file. Slip yang sudah terkirim (ada di Riwayat) tidak terpengaruh.</p>',
+      buttons: [{ label: 'Batal', kind: 'outline', value: 'cancel' }, { label: 'Hapus Semua', kind: 'primary', value: 'delete' }]
+    });
+    if (answer !== 'delete') return;
+    setBusy(true);
+    try {
+      const res = await SlipStore.deleteAllPreview();
+      SlipUI.toast((res && res.dihapus != null ? res.dihapus : rows.length) + ' preview slip dihapus.');
+    } catch (err) {
+      SlipUI.toast('Gagal menghapus preview: ' + err.message, 'error');
+    }
+    setBusy(false); await load(); render();
+  }
+
   /* Accordion + tombol preview + kirim per divisi. */
   listEl.addEventListener('click', (e) => {
+    const del = e.target.closest('[data-del]');
+    if (del) { deleteOne(del.getAttribute('data-del')); return; }
     const eye = e.target.closest('[data-preview]');
     if (eye) {
       const row = rows.find((r) => r.nik === eye.getAttribute('data-preview'));
@@ -368,6 +413,7 @@
 
   btnAll.addEventListener('click', () => sendFlow({ all: true, channel: 'email' }));
   btnAllWa.addEventListener('click', () => sendFlow({ all: true, channel: 'wa' }));
+  if (btnDeleteAll) btnDeleteAll.addEventListener('click', deleteAll);
 
   load().then(render);
 })();

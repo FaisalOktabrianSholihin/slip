@@ -39,6 +39,8 @@
                         <div class="status-metric"><span class="status-dot dot-penugasan"></span><span
                                 class="status-name">Penugasan</span><strong data-status="penugasan">0</strong></div>
                     </div>
+                    <p class="kpi-updated" id="kpiUpdated"><i class="bi bi-clock-history" aria-hidden="true"></i>
+                        <span>Memuat tanggal pembaruan data...</span></p>
                 </div>
             </article>
             <article class="kpi-card kpi-tenure-card" id="kpiMasaKerjaCard">

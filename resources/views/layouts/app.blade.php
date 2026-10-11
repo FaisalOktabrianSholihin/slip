@@ -52,6 +52,7 @@
     <script src="{{ asset('js/sidebar.js') }}"></script>
     <script src="{{ asset('js/topheader.js') }}"></script>
     <script src="{{ asset('js/auth.js') }}"></script>
+    <script src="{{ asset('js/import-runner.js') }}?v=20261010-1"></script>
     @stack('scripts')
 </body>
 

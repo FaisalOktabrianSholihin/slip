@@ -118,7 +118,15 @@ Route::middleware(['auth'])->group(function () {
 
         // Kirim Slip Gaji (padanan SlipController@upload/@preview/@storeDivisi/@storeAll)
         Route::post('/slip/import', [SlipController::class, 'importPayroll'])->name('slip.import')->middleware('permission:kirim-slip.import');
+        // Import di latar belakang (lanjut walau pindah menu)
+        Route::get('/slip/import-jobs/aktif', [SlipController::class, 'jobAktif'])->name('slip.job.aktif')->middleware('permission:kirim-slip.view');
+        Route::post('/slip/import-jobs', [SlipController::class, 'jobBuat'])->name('slip.job.buat')->middleware('permission:kirim-slip.import');
+        Route::post('/slip/import-jobs/{job}/proses', [SlipController::class, 'jobProses'])->name('slip.job.proses')->middleware('permission:kirim-slip.import');
+        Route::post('/slip/import-jobs/{job}/batal', [SlipController::class, 'jobBatal'])->name('slip.job.batal')->middleware('permission:kirim-slip.import');
+        Route::post('/slip/import-jobs/{job}/dilihat', [SlipController::class, 'jobDilihat'])->name('slip.job.dilihat')->middleware('permission:kirim-slip.view');
         Route::get('/slip/preview', [SlipController::class, 'preview'])->name('slip.preview')->middleware('permission:kirim-slip.view');
+        Route::delete('/slip/preview', [SlipController::class, 'hapusSemuaPreview'])->name('slip.preview.hapus-semua')->middleware('permission:kirim-slip.import');
+        Route::delete('/slip/preview/{payroll}', [SlipController::class, 'hapusPreview'])->name('slip.preview.hapus')->middleware('permission:kirim-slip.import');
         Route::get('/slip/{payroll}/pdf', [SlipController::class, 'pdf'])->name('slip.pdf')->middleware('permission:detail-riwayat.view');
         Route::post('/slip/kirim-semua', [SlipController::class, 'storeAll'])->name('slip.kirim-semua')->middleware('permission:kirim-slip.send');
         Route::post('/slip/kirim-divisi/{divisi}', [SlipController::class, 'storeDivisi'])->name('slip.kirim-divisi')->middleware('permission:kirim-slip.send');

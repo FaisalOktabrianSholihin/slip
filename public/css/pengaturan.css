@@ -636,3 +636,31 @@
         grid-column: auto
     }
 }
+
+/* Demografi: peringatan dampak ke dashboard + label usia otomatis */
+.demo-warning {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    margin-top: 14px;
+    padding: 11px 14px;
+    background: #fff6e5;
+    border: 1px solid #f1d49a;
+    border-radius: 12px;
+    color: #7a5200;
+    font-size: .86rem;
+    line-height: 1.5
+}
+
+.demo-warning i {
+    margin-top: 2px;
+    color: #d98c1f
+}
+
+.demografi-page #ageRanges input[readonly] {
+    background: #eef3f0 !important;
+    color: #44554b;
+    font-weight: 700;
+    cursor: not-allowed;
+    border-style: dashed
+}

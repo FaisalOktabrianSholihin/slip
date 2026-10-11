@@ -54,6 +54,15 @@
     return (first + (last || '')).toUpperCase();
   }
 
+  /* Avatar mengikuti jenis kelamin (L = laki-laki, P = perempuan), bukan inisial. */
+  function avatarHtml(r, large) {
+    var jk = String(r.jenisKelamin || '').toUpperCase().charAt(0);
+    var cls = jk === 'P' ? 'kw-avatar--p' : (jk === 'L' ? 'kw-avatar--l' : 'kw-avatar--n');
+    var icon = jk === 'P' ? 'fa-person-dress' : (jk === 'L' ? 'fa-person' : 'fa-user');
+    var label = jk === 'P' ? 'Perempuan' : (jk === 'L' ? 'Laki-laki' : 'Jenis kelamin belum diisi');
+    return '<span class="kw-avatar ' + (large ? 'kw-avatar--lg ' : '') + cls + '" title="' + label + '" role="img" aria-label="' + label + '"><i class="fa-solid ' + icon + '"></i></span>';
+  }
+
   function tone(name) {
     var h = 0;
     for (var i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) % 5;
@@ -155,6 +164,48 @@
     btnTambahAnak: $('#kwBtnTambahAnak')
   };
 
+  /* ---------- Pencarian di SEMUA data karyawan ----------
+     Bukan hanya kolom yang tampil di tabel: seluruh field (NIK, KTP, HP, alamat,
+     jabatan, pendidikan, keluarga, bank, anak, dst) ikut dicari, termasuk
+     bentuk teks jenis kelamin / status dan tanggal (yyyy-mm-dd, dd/mm/yyyy,
+     dan nama bulan). Beberapa kata dipisah spasi harus cocok semuanya. */
+  var BULAN = ['januari', 'februari', 'maret', 'april', 'mei', 'juni', 'juli', 'agustus', 'september', 'oktober', 'november', 'desember'];
+  function flatten(v, out) {
+    if (v === null || v === undefined || v === '') return;
+    if (Array.isArray(v)) { v.forEach(function (x) { flatten(x, out); }); return; }
+    if (typeof v === 'object') { Object.keys(v).forEach(function (k) { flatten(v[k], out); }); return; }
+    var str = String(v);
+    out.push(str);
+    var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(str);
+    if (m) out.push(m[3] + '/' + m[2] + '/' + m[1], m[3] + '-' + m[2] + '-' + m[1], parseInt(m[3], 10) + ' ' + BULAN[parseInt(m[2], 10) - 1] + ' ' + m[1]);
+  }
+  function searchText(r) {
+    var parts = [];
+    Object.keys(r).forEach(function (k) {
+      if (k === 'id' || k === 'updatedAt') return;
+      flatten(r[k], parts);
+    });
+    parts.push(r.aktif ? 'aktif' : 'nonaktif tidak aktif');
+    var jk = String(r.jenisKelamin || '').toUpperCase();
+    if (jk === 'L') parts.push('laki-laki laki laki pria');
+    if (jk === 'P') parts.push('perempuan wanita');
+    if (r.statusPegawai) parts.push(STATUS_PEGAWAI_LABEL[r.statusPegawai] || '');
+    return parts.join(' | ').toLowerCase();
+  }
+
+  /* ---------- Keterangan "data terakhir diperbarui" ---------- */
+  function renderLastUpdated() {
+    var el = $('#kwLastUpdate');
+    if (!el) return;
+    var latest = 0;
+    data.forEach(function (r) { var t = r.updatedAt ? Date.parse(r.updatedAt) : 0; if (t > latest) latest = t; });
+    if (!latest) { el.textContent = 'Belum ada data karyawan yang diisi.'; return; }
+    var d = new Date(latest);
+    el.textContent = 'Data karyawan terakhir diperbarui pada ' +
+      d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) + ', pukul ' +
+      d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':') + ' WIB (berdasarkan pengisian data terakhir).';
+  }
+
   /* ---------- Filter, sort, render ---------- */
   function getFiltered() {
     var q = state.q.trim().toLowerCase();
@@ -163,9 +214,8 @@
       if (state.divisi && r.divisi !== state.divisi) return false;
       if (state.status && (state.status === 'aktif') !== r.aktif) return false;
       if (!q) return true;
-      return [r.nama, r.email, r.nik, r.divisi].some(function (v) {
-        return v.toLowerCase().indexOf(q) !== -1;
-      });
+      var hay = searchText(r);
+      return q.split(/\s+/).every(function (w) { return hay.indexOf(w) !== -1; });
     });
 
     if (state.sortKey) {
@@ -189,7 +239,7 @@
       '<tr>' +
       '<td class="kw-col-no">' + no + '</td>' +
       '<td><div class="kw-person">' +
-      '<span class="kw-avatar ' + tone(r.nama) + '" aria-hidden="true">' + esc(initials(r.nama)) + '</span>' +
+      avatarHtml(r, false) +
       '<span class="kw-person__name">' + esc(r.nama) + '</span>' +
       '</div></td>' +
       '<td class="kw-email">' + esc(r.email) + '</td>' +
@@ -292,6 +342,7 @@
 
     renderPager(pages);
     renderStats();
+    renderLastUpdated();
     renderSortUi();
     renderFilterBadge();
   }
@@ -954,7 +1005,7 @@
     detailId = id;
 
     els.detailTop.innerHTML =
-      '<span class="kw-avatar kw-avatar--lg ' + tone(r.nama) + '" aria-hidden="true">' + esc(initials(r.nama)) + '</span>' +
+      avatarHtml(r, true) +
       '<div><h3 class="kw-detail__name">' + esc(r.nama) + '</h3><p class="kw-detail__email">' + esc(r.email) + '</p></div>';
 
     $('#kwDetailPanelUtama').innerHTML = detailUtamaHtml(r);
@@ -1151,7 +1202,7 @@
       }
 
       var existing = data.find(function (x) { return String(x.nik) === nik; });
-      var r = { id: existing ? existing.id : nextId++, nik: nik };
+      var r = { id: existing ? existing.id : nextId++, nik: nik, updatedAt: new Date().toISOString() };
       MASTER_COLUMNS.forEach(function (c) {
         if (!col[c[1]]) return;
         var v = row.getCell(col[c[1]]).value;

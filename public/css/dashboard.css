@@ -548,3 +548,110 @@ body {
     transform: none;
   }
 }
+
+/* ---------- Keterangan pembaruan data (kartu Ringkasan SDM) ---------- */
+.kpi-updated {
+  margin: 10px 0 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  color: #6f8177;
+  font-size: .78rem;
+  line-height: 1.45;
+}
+
+.kpi-updated i {
+  margin-top: 2px;
+  color: #007444;
+}
+
+/* ---------- Matriks: pembeda Umur vs Pendidikan + kolom Total ---------- */
+.matrix {
+  min-width: 760px;
+}
+
+.matrix thead th.mx-first {
+  background: #dcebe2;
+  color: var(--g-800);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.matrix thead th.mx-group {
+  font-size: .8rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  border-bottom-width: 2px;
+}
+
+.matrix thead th.mx-age-head {
+  background: #cfe9da;
+  color: #0c5a38;
+}
+
+.matrix thead th.mx-edu-head {
+  background: #cfdef5;
+  color: #1f4b8f;
+}
+
+.matrix thead th.mx-age-sub {
+  background: #e8f3ed;
+}
+
+.matrix thead th.mx-edu-sub {
+  background: #eaf0fa;
+}
+
+/* garis pemisah tebal antara blok Umur dan blok Pendidikan */
+.matrix .mx-sep {
+  border-left: 3px solid #7aa896;
+}
+
+.matrix tbody td.mx-age {
+  background: rgba(67, 166, 122, .07);
+}
+
+.matrix tbody td.mx-edu {
+  background: rgba(79, 131, 204, .07);
+}
+
+/* kolom Total */
+.matrix .mx-total {
+  font-weight: 800;
+  border-left: 2px solid #9bb8aa;
+}
+
+.matrix thead th.mx-total.mx-age-sub {
+  background: #cfe9da;
+  color: #0c5a38;
+}
+
+.matrix thead th.mx-total.mx-edu-sub {
+  background: #cfdef5;
+  color: #1f4b8f;
+}
+
+.matrix tbody td.mx-age.mx-total {
+  background: #dff1e7;
+  color: #0c5a38;
+}
+
+.matrix tbody td.mx-edu.mx-total {
+  background: #e0eaf8;
+  color: #1f4b8f;
+}
+
+/* baris Total di bawah */
+.matrix tfoot td {
+  border-top: 3px solid #7aa896;
+}
+
+.matrix tfoot td.mx-age {
+  background: #cfe9da;
+  color: #0c5a38;
+}
+
+.matrix tfoot td.mx-edu {
+  background: #cfdef5;
+  color: #1f4b8f;
+}

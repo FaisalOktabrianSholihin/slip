@@ -136,7 +136,7 @@
     setError(''); const f = this.files[0];
     if (!f) { excelName.innerHTML = '<i class="bi bi-file-earmark-excel"></i> Belum ada file dipilih'; btnImport.disabled = true; return; }
     excelName.innerHTML = '<i class="bi bi-file-earmark-excel-fill"></i> ' + esc(f.name) + ' <span>(' + Math.ceil(f.size / 1024) + ' KB)</span>';
-    btnImport.disabled = !/\.xlsx$/i.test(f.name);
+    btnImport.disabled = busy || !/\.xlsx$/i.test(f.name);
     if (!btnImport.disabled) SlipUI.toast('File Excel siap diimport.', 'info'); else setError('File harus berformat .xlsx.');
   });
   function readBuffer(file) { return new Promise((resolve, reject) => { const fr = new FileReader(); fr.onload = () => resolve(fr.result); fr.onerror = () => reject(fr.error || new Error('File gagal dibaca')); fr.readAsArrayBuffer(file); }); }
@@ -173,22 +173,17 @@
 
   function periodeAwalBulan() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-01'; }
 
-  async function kirimKeServer(parsed) {
-    if (!parsed.rows.length) return { berhasil: 0, gagal: [], data: [] };
+  // Import dijalankan di latar belakang oleh ImportRunner (js/import-runner.js).
+  // Data disimpan di server dan diproses bertahap, jadi tetap berjalan walau
+  // pengguna berpindah menu; saat kembali ke halaman ini progresnya tampil lagi.
+  function buatPayload(parsed) {
     const cfg = getConfig();
-    const payload = {
+    return {
       periode: periodeAwalBulan(),
       componentConfig: { additions: cfg.additions, deductions: cfg.deductions },
-      rows: parsed.rows.map(r => ({ nik: r.nik, gajiPokok: r.gajiPokok, tambahan: r.tambahan, potongan: r.potongan }))
+      rows: parsed.rows.map(r => ({ row: r.row, nik: r.nik, gajiPokok: r.gajiPokok, tambahan: r.tambahan, potongan: r.potongan })),
+      parseErrors: parsed.errors.map(e => ({ row: e.row, msg: e.msg }))
     };
-    const res = await Api.post('/api/slip/import', payload);
-    // Gabungkan pesan gagal dari server (NIK tak ditemukan / kontak kosong)
-    // dengan nomor baris Excel aslinya, supaya pesan tetap "Baris N ...".
-    const byNik = {}; parsed.rows.forEach(r => { byNik[r.nik] = r.row; });
-    const gagalServer = (res.gagal || []).map(g => ({ row: byNik[g.nik] || '-', msg: g.alasan }));
-    // `data` (daftar payroll yang berhasil) wajib ikut dikembalikan, kalau tidak
-    // popup validasi menerima daftar kosong dan menampilkan angka 0.
-    return { berhasil: res.berhasil, gagal: gagalServer, data: res.data || [] };
   }
 
   function renderResult(res) {
@@ -223,24 +218,78 @@
 
   async function importExcel() {
     if (busy) return; const file = excel.files[0]; if (!file) return setError('Pilih file Excel terlebih dahulu.'); if (!/\.xlsx$/i.test(file.name)) return setError('File harus berformat .xlsx.'); if (typeof ExcelJS === 'undefined') return setError('Library Excel gagal dimuat.');
-    busy = true; btnImport.disabled = true; btnTemplate.setAttribute('aria-disabled', 'true'); btnTemplate.style.pointerEvents = 'none'; btnPreview.disabled = true; btnImport.innerHTML = '<i class="bi bi-arrow-repeat is-spin"></i><span>Memproses...</span>'; setError('');
+    if (!window.ImportRunner) return setError('Modul proses latar belakang gagal dimuat. Muat ulang halaman.');
+    busy = true; btnImport.disabled = true; btnImport.innerHTML = '<i class="bi bi-arrow-repeat is-spin"></i><span>Membaca file...</span>'; setError('');
     try {
       const wb = new ExcelJS.Workbook(); await wb.xlsx.load(await readBuffer(file)); const ws = wb.worksheets[0]; if (!ws) throw new Error('Sheet pertama kosong');
-      const parsed = parseSheet(ws); if (parsed.fatal) { renderResult(parsed); return; }
-      const serverRes = await kirimKeServer(parsed);
-      const combined = { berhasil: serverRes.berhasil, errors: parsed.errors.concat(serverRes.gagal) };
-      renderResult(combined); refreshBadge();
-      if (combined.berhasil) {
-        SlipUI.toast(combined.berhasil + ' data gaji berhasil disimpan.');
-        const choice = await showImportConfirmation({ data: serverRes.data, berhasil: combined.berhasil, gagal: combined.errors });
-        if (choice === 'preview') window.location.href = '/preview-slip';
-      } else {
+      const parsed = parseSheet(ws); if (parsed.fatal) { renderResult(parsed); busy = false; syncButtons(null); return; }
+      if (!parsed.rows.length) {
+        renderResult({ berhasil: 0, errors: parsed.errors });
         SlipUI.toast('Tidak ada data valid yang dapat diimport.', 'error');
+        busy = false; syncButtons(null); return;
       }
+      lastShownJob = null;
+      await window.ImportRunner.start(buatPayload(parsed));
+      SlipUI.toast('Import berjalan di latar belakang. Anda boleh berpindah menu.', 'info');
+      excel.value = ''; excelName.innerHTML = '<i class="bi bi-file-earmark-excel"></i> Belum ada file dipilih';
+    } catch (e) {
+      console.error(e);
+      busy = false; syncButtons(window.ImportRunner && window.ImportRunner.current);
+      renderResult({ fatal: 'Import gagal dimulai (' + (e.message || 'file tidak bisa dibaca') + ').' });
     }
-    catch (e) { console.error(e); renderResult({ fatal: 'File tidak bisa dibaca, atau gagal disimpan ke server (' + (e.message || '') + ').' }); }
-    finally { busy = false; btnImport.disabled = !excel.files.length; btnTemplate.removeAttribute('aria-disabled'); btnTemplate.style.pointerEvents = ''; btnPreview.disabled = false; btnImport.innerHTML = '<i class="bi bi-cloud-arrow-up-fill"></i><span>Import Excel</span>'; }
   }
+
+  /* ---------- Tampilan mengikuti status job (juga saat kembali dari menu lain) ---------- */
+  let lastShownJob = null;
+  function syncButtons(job) {
+    const active = !!job && job.status === 'berjalan';
+    busy = active;
+    btnImport.disabled = active || !excel.files.length;
+    btnImport.innerHTML = active
+      ? '<i class="bi bi-arrow-repeat is-spin"></i><span>Memproses ' + job.processed + ' / ' + job.total + '...</span>'
+      : '<i class="bi bi-cloud-arrow-up-fill"></i><span>Import Excel</span>';
+    chooseBtn.disabled = active;
+  }
+
+  function renderProgress(job) {
+    const pct = job.total ? Math.round(job.processed / job.total * 100) : 0;
+    result.hidden = false; result.className = 'ks-result';
+    result.innerHTML = '<strong><i class="bi ' + (job.terputus ? 'bi-exclamation-triangle-fill' : 'bi-arrow-repeat is-spin') + '"></i> ' + (job.terputus ? 'Proses terhenti (koneksi bermasalah)' : 'Import sedang diproses di latar belakang') + '</strong>'
+      + '<p>' + job.processed + ' dari ' + job.total + ' data selesai (' + pct + '%). Anda boleh berpindah menu; proses tetap berjalan dan akan tampil lagi di sini.</p>'
+      + '<div class="ks-progress"><span style="width:' + pct + '%"></span></div>'
+      + '<div class="ks-progress-actions">' + (job.terputus ? '<button type="button" class="ks-btn ks-btn--primary ks-btn--sm" data-resume>Lanjutkan</button>' : '') + '<button type="button" class="ks-btn ks-btn--outline ks-btn--sm" data-cancel-import>Batalkan import</button></div>';
+  }
+
+  async function onJobUpdate(job) {
+    syncButtons(job);
+    if (!job || job.status !== 'berjalan') refreshBadge();
+    if (!job) return;
+    if (job.status === 'berjalan') { renderProgress(job); return; }
+    // selesai / dibatalkan
+    const errors = (job.gagal || []).map(g => ({ row: g.baris, msg: (g.nik ? 'NIK ' + g.nik + ': ' : '') + g.alasan }));
+    renderResult({ berhasil: job.berhasil, errors: errors });
+    if (lastShownJob === job.id) return;
+    lastShownJob = job.id;
+    if (job.status === 'dibatalkan') { SlipUI.toast('Import dibatalkan.', 'info'); window.ImportRunner.dismiss(); return; }
+    if (job.berhasil) {
+      SlipUI.toast(job.berhasil + ' data gaji berhasil disimpan.');
+      const choice = await showImportConfirmation({ data: job.data, berhasil: job.berhasil, gagal: errors });
+      window.ImportRunner.dismiss();
+      if (choice === 'preview') window.location.href = '/preview-slip';
+    } else {
+      SlipUI.toast('Tidak ada data valid yang dapat diimport.', 'error');
+      window.ImportRunner.dismiss();
+    }
+  }
+
+  result.addEventListener('click', function (e) {
+    if (e.target.closest('[data-resume]')) window.ImportRunner.resume();
+    if (e.target.closest('[data-cancel-import]')) {
+      SlipUI.dialog({ title: 'Batalkan import?', html: '<p class="ks-result__lead">Data yang sudah terproses tetap ada di Preview Slip dan bisa dihapus dengan tombol Hapus Preview.</p>', buttons: [{ label: 'Lanjutkan import', kind: 'outline', value: 'no' }, { label: 'Batalkan', kind: 'primary', value: 'yes' }] })
+        .then(v => { if (v === 'yes') window.ImportRunner.cancel(); });
+    }
+  });
+
 
   async function downloadTemplate(e) {
     // Fallback utama: file template fisik yang ikut di dalam project.
@@ -275,4 +324,5 @@
     }
   }
   btnImport.addEventListener('click', importExcel); btnTemplate.addEventListener('click', downloadTemplate); btnPreview.addEventListener('click', () => window.location.href = '/preview-slip'); refreshBadge();
+  if (window.ImportRunner) window.ImportRunner.subscribe(onJobUpdate);
 })();

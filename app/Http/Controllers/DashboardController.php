@@ -72,6 +72,7 @@ class DashboardController extends Controller
             'matriks' => $matrix,
             'matrixHeaders' => array_merge(array_column($ageCounts, 'label'), array_column($eduCounts, 'label')),
             'kpi' => ['total' => $karyawan->count(), 'status' => $statusCounts, 'masaKerja5' => $masaKerja5, 'dashboardKpis' => $setting->dashboard_kpis ?? ['total', 'status', 'masaKerja5']],
+            'lastUpdate' => ($lastUpdate = Karyawan::max('updated_at')) ? Carbon::parse($lastUpdate)->toIso8601String() : null,
             'totalKaryawan' => $karyawan->count(),
             'totalAktif' => $karyawan->count(),
         ]);

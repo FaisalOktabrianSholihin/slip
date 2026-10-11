@@ -23,6 +23,17 @@ function initDashboard(data) {
     });
   })();
 
+  /* ===== Keterangan tanggal pembaruan data karyawan ===== */
+  (function renderUpdated() {
+    const el = document.querySelector('#kpiUpdated span');
+    if (!el) return;
+    const d = data.lastUpdate ? new Date(data.lastUpdate) : null;
+    if (!d || isNaN(d)) { el.textContent = 'Belum ada data karyawan yang diisi.'; return; }
+    const tgl = d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+    const jam = d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':');
+    el.textContent = 'Data karyawan terakhir diperbarui pada ' + tgl + ', pukul ' + jam + ' WIB (berdasarkan pengisian terakhir di menu Karyawan).';
+  })();
+
   /* ===== Warna dari CSS variables ===== */
   const css = getComputedStyle(document.documentElement);
   const C = {
@@ -109,13 +120,20 @@ function initDashboard(data) {
   comboChart('chartPendidikan', data.pendidikan.labels, data.pendidikan.jumlah, '#4F83CC');
   comboChart('chartUsia', data.usia.labels, data.usia.jumlah, '#43A67A');
 
-  /* ===== Donut status ===== */
+  /* ===== Donut status (tampil dalam persen saja) ===== */
+  const statusData = data.status.jumlah || [];
+  const statusTotal = statusData.reduce((a, b) => a + Number(b || 0), 0);
+  const pctText = v => {
+    if (!statusTotal || !v) return '0%';
+    const p = (Number(v) / statusTotal) * 100;
+    return (Number.isInteger(Math.round(p * 10) / 10) ? Math.round(p) : (Math.round(p * 10) / 10).toLocaleString('id-ID')) + '%';
+  };
   new Chart(document.getElementById('chartStatus'), {
     type: 'doughnut',
     data: {
       labels: data.status.labels || [],
       datasets: [{
-        data: data.status.jumlah || [],
+        data: statusData,
         backgroundColor: ['#176B4D', '#43A67A', '#E6B655', '#4F83CC', '#8D6CAB'],
         borderWidth: 0
       }]
@@ -123,37 +141,65 @@ function initDashboard(data) {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      cutout: '72%',
+      cutout: '65%',
       plugins: {
         legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 10 } },
+        tooltip: { callbacks: { label: ctx => ' ' + ctx.label + ': ' + pctText(ctx.parsed) } },
         datalabels: {
           color: '#fff',
           font: { weight: 700 },
-          formatter: v => v.toLocaleString('id-ID')
+          display: ctx => Number(ctx.dataset.data[ctx.dataIndex]) > 0,
+          formatter: v => pctText(v)
         }
       }
     }
   });
 
-  /* ===== Matriks Komposisi SDM ===== */
+  /* ===== Matriks Komposisi SDM =====
+     Kolom: [Umur ... | Total Umur] [Pendidikan ... | Total Pendidikan]
+     Baris paling bawah: total tiap kolom (atas ke bawah). */
   (function renderMatrix() {
-    const tbody = document.querySelector('#matrixTable tbody');
-    const tfoot = document.querySelector('#matrixTable tfoot');
-    const headers = data.matrixHeaders || [...data.usia.labels, ...data.pendidikan.labels];
-    const head = document.querySelector('#matrixTable thead tr');
-    head.innerHTML = '<th>Komposisi SDM</th>' + headers.map((h, i) => `<th style="background:${i < data.usia.labels.length ? '#E8F3ED' : '#EAF0FA'}">${h}</th>`).join('');
-    const cols = data.matriks.length ? data.matriks[0].nilai.length : 0;
-    const totals = Array(cols).fill(0);
+    const table = document.getElementById('matrixTable');
+    const thead = table.querySelector('thead');
+    const tbody = table.querySelector('tbody');
+    const tfoot = table.querySelector('tfoot');
+    const ageLabels = data.usia.labels || [];
+    const eduLabels = data.pendidikan.labels || [];
+    const nAge = ageLabels.length, nEdu = eduLabels.length;
+    const sum = arr => arr.reduce((a, b) => a + Number(b || 0), 0);
 
-    data.matriks.forEach(row => {
-      row.nilai.forEach((v, i) => (totals[i] += v));
-      tbody.insertAdjacentHTML(
-        'beforeend',
-        `<tr><td>${row.nama}</td>${row.nilai.map(v => `<td>${v}</td>`).join('')}</tr>`
-      );
+    thead.innerHTML =
+      '<tr>' +
+      '<th rowspan="2" class="mx-first">Komposisi SDM</th>' +
+      '<th colspan="' + (nAge + 1) + '" class="mx-group mx-age-head">Umur</th>' +
+      '<th colspan="' + (nEdu + 1) + '" class="mx-group mx-edu-head">Pendidikan</th>' +
+      '</tr><tr>' +
+      ageLabels.map(h => '<th class="mx-age-sub">' + h + '</th>').join('') +
+      '<th class="mx-age-sub mx-total">Total</th>' +
+      eduLabels.map(h => '<th class="mx-edu-sub">' + h + '</th>').join('') +
+      '<th class="mx-edu-sub mx-total">Total</th>' +
+      '</tr>';
+
+    const colTotals = Array(nAge + nEdu).fill(0);
+    tbody.innerHTML = '';
+    (data.matriks || []).forEach(row => {
+      const ages = row.nilai.slice(0, nAge), edus = row.nilai.slice(nAge, nAge + nEdu);
+      row.nilai.forEach((v, i) => { colTotals[i] += Number(v || 0); });
+      tbody.insertAdjacentHTML('beforeend',
+        '<tr><td class="mx-first">' + row.nama + '</td>' +
+        ages.map((v, i) => '<td class="mx-age' + (i === 0 ? ' mx-sep' : '') + '">' + v + '</td>').join('') +
+        '<td class="mx-age mx-total">' + sum(ages) + '</td>' +
+        edus.map((v, i) => '<td class="mx-edu' + (i === 0 ? ' mx-sep' : '') + '">' + v + '</td>').join('') +
+        '<td class="mx-edu mx-total">' + sum(edus) + '</td></tr>');
     });
 
-    tfoot.innerHTML = `<tr><td>Jumlah</td>${totals.map(v => `<td>${v}</td>`).join('')}</tr>`;
+    const ageTot = colTotals.slice(0, nAge), eduTot = colTotals.slice(nAge);
+    tfoot.innerHTML =
+      '<tr><td class="mx-first">Total</td>' +
+      ageTot.map((v, i) => '<td class="mx-age' + (i === 0 ? ' mx-sep' : '') + '">' + v + '</td>').join('') +
+      '<td class="mx-age mx-total">' + sum(ageTot) + '</td>' +
+      eduTot.map((v, i) => '<td class="mx-edu' + (i === 0 ? ' mx-sep' : '') + '">' + v + '</td>').join('') +
+      '<td class="mx-edu mx-total">' + sum(eduTot) + '</td></tr>';
   })();
 
 
