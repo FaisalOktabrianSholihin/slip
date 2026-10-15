@@ -6,6 +6,8 @@ use App\Mail\SlipGajiMail;
 use App\Models\ActivityLog;
 use App\Models\MasterData\Karyawan;
 use App\Models\ImportJob;
+use App\Models\SendJob;
+use App\Support\MailEnv;
 use App\Models\Payroll;
 use App\Models\SlipHistory;
 use App\Models\Setting;
@@ -98,8 +100,20 @@ class SlipController extends Controller
             ->latest('id')
             ->get();
 
-        return $payrolls->map(function (Payroll $p) {
+        // Hasil kirim terakhir per payroll. Hanya dianggap bila terjadi SETELAH
+        // payroll terakhir diperbarui (import ulang = mulai dari "Menunggu" lagi).
+        $riwayatTerakhir = $payrolls->isEmpty()
+            ? collect()
+            : SlipHistory::whereIn('payroll_id', $payrolls->pluck('id'))
+                ->orderByDesc('id')
+                ->get()
+                ->groupBy('payroll_id')
+                ->map(fn($g) => $g->first());
+
+        return $payrolls->map(function (Payroll $p) use ($riwayatTerakhir) {
             $karyawan = $p->karyawan;
+            $h = $riwayatTerakhir->get($p->id);
+            $hasilTerakhir = ($h && $p->updated_at && $h->created_at->gte($p->updated_at)) ? $h : null;
             $tambahan = $p->items->where('tipe', 'tambahan')->sortBy('urutan')->values();
             $potongan = $p->items->where('tipe', 'potongan')->sortBy('urutan')->values();
 
@@ -165,6 +179,8 @@ class SlipController extends Controller
                 'date' => optional($p->periode)->format('Y-m-d'),
                 'file' => $p->file_slip ?: 'SLIP_' . $p->karyawan_nik . '_' . optional($p->periode)->format('Y-m') . '.pdf',
                 'pdfUrl' => route('api.slip.pdf', $p),
+                'lastStatus' => $hasilTerakhir?->status,
+                'lastReason' => $hasilTerakhir?->keterangan,
                 'channel' => $p->channel ?: ($karyawan?->email ? 'email' : ($karyawan?->no_hp ? 'wa' : '')),
                 'componentConfig' => [
                     'additions' => array_values($config['additions'] ?? []),
@@ -172,12 +188,27 @@ class SlipController extends Controller
                 ],
             ];
 
-            foreach ($tambahan as $i => $item) {
-                $row['tambahan' . ($i + 1)] = (float) $item->jumlah;
-            }
+            // Daftar komponen apa adanya (nama + nominal), sama dengan isi PDF.
+            // Dipakai tampilan detail slip supaya nama komponen tidak bergeser.
+            $row['tambahanItems'] = $tambahan->map(fn($it) => ['nama' => $it->nama, 'jumlah' => (float) $it->jumlah])->values()->all();
+            $row['potonganItems'] = $potongan->map(fn($it) => ['nama' => $it->nama, 'jumlah' => (float) $it->jumlah])->values()->all();
 
-            foreach ($potongan as $i => $item) {
-                $row['potongan' . ($i + 1)] = (float) $item->jumlah;
+            // Nomor tambahanN / potonganN dicocokkan lewat NAMA komponen pada konfigurasi
+            // (nomor urutan tersimpan sudah rapat karena komponen kosong dibuang saat import).
+            foreach (['tambahan' => [$tambahan, $row['componentConfig']['additions']], 'potongan' => [$potongan, $row['componentConfig']['deductions']]] as $kunci => [$daftar, $namaKomponen]) {
+                $terpakai = [];
+                foreach ($daftar as $item) {
+                    $no = null;
+                    foreach ($namaKomponen as $k => $nama) {
+                        if ($nama === $item->nama && ! isset($terpakai[$k])) {
+                            $no = $k + 1;
+                            break;
+                        }
+                    }
+                    $no ??= (int) $item->urutan;
+                    $terpakai[$no - 1] = true;
+                    $row[$kunci . $no] = (float) $item->jumlah;
+                }
             }
 
             return $row;
@@ -225,6 +256,7 @@ class SlipController extends Controller
                         'gaji_pokok' => $row['gajiPokok'],
                         'status' => 'siap_kirim',
                         'channel' => $karyawan->email ? 'email' : 'wa',
+                        'dikirim_pada' => null,
                         'component_config' => $config,
                         'catatan' => null,
                         'dibuat_oleh' => auth()->id(),
@@ -272,6 +304,9 @@ class SlipController extends Controller
                 'file_slip' => $filename,
                 'status' => 'siap_kirim',
             ]);
+            // Tandai waktu import terbaru walau datanya identik, supaya hasil kirim
+            // sebelumnya tidak ikut terbawa ke status preview.
+            $payroll->touch();
 
             return ['ok' => [
                 'id' => $payroll->id,
@@ -380,6 +415,9 @@ class SlipController extends Controller
 
     protected function kirimSatuSlip(Payroll $payroll): bool
     {
+        // Pakai akun email terbaru dari .env (mis. baru diganti di menu Pengaturan).
+        MailEnv::terapkan();
+
         $settings = Setting::current();
         $karyawan = $payroll->karyawan;
 
@@ -414,10 +452,19 @@ class SlipController extends Controller
             return $this->catatHasilKirim($payroll, $karyawan, false, $alasan, 'email');
         }
 
+        // Alamat email salah format: catat gagal dengan alasan yang jelas.
+        $alamat = trim((string) $karyawan->email);
+        if (! filter_var($alamat, FILTER_VALIDATE_EMAIL)) {
+            $alasan = 'Alamat email tidak valid: "' . $alamat . '". Perbaiki di Data Karyawan lalu kirim ulang.';
+            $payroll->update(['status' => 'gagal', 'catatan' => $alasan]);
+
+            return $this->catatHasilKirim($payroll, $karyawan, false, $alasan, 'email');
+        }
+
         try {
             $pdf = $this->buatPdfBerpassword($payroll, $karyawan);
 
-            Mail::to($karyawan->email)->send(
+            Mail::to($alamat)->send(
                 new SlipGajiMail($payroll->fresh(['items']), $karyawan->nama, $pdf['binary'], $pdf['nama'])
             );
 
@@ -435,12 +482,13 @@ class SlipController extends Controller
             return $this->catatHasilKirim($payroll, $karyawan, true, null, 'email');
         } catch (\Throwable $e) {
             report($e);
+            $alasan = $this->ramahkanErrorEmail($e->getMessage());
             $payroll->update([
                 'status' => 'gagal',
-                'catatan' => $e->getMessage(),
+                'catatan' => $alasan,
             ]);
 
-            return $this->catatHasilKirim($payroll, $karyawan, false, $e->getMessage(), 'email');
+            return $this->catatHasilKirim($payroll, $karyawan, false, $alasan, 'email');
         }
     }
 
@@ -481,6 +529,30 @@ class SlipController extends Controller
             'nama' => $payroll->file_slip
                 ?: 'SLIP_' . $payroll->karyawan_nik . '_' . optional($payroll->periode)->format('Ym') . '.pdf',
         ];
+    }
+
+    /**
+     * Ubah pesan teknis SMTP menjadi alasan yang mudah dibaca di Riwayat.
+     * Pesan aslinya tetap disertakan di belakang agar mudah ditelusuri.
+     */
+    protected function ramahkanErrorEmail(string $pesan): string
+    {
+        $m = strtolower($pesan);
+        $ringkas = null;
+
+        if (preg_match('/\b550\b|5\.1\.1|user unknown|no such user|does not exist|mailbox unavailable|address not found|recipient.*(rejected|invalid)/', $m)) {
+            $ringkas = 'Alamat email tujuan tidak ditemukan / ditolak server penerima';
+        } elseif (preg_match('/domain.*(not found|invalid)|host.*not found|could not resolve|name or service not known/', $m)) {
+            $ringkas = 'Domain email tujuan tidak ditemukan';
+        } elseif (preg_match('/authenticat|username and password|535/', $m)) {
+            $ringkas = 'Login akun pengirim email ditolak, cek akun email di Pengaturan';
+        } elseif (preg_match('/timed out|timeout|connection could not be established|connection refused/', $m)) {
+            $ringkas = 'Koneksi ke server email gagal / waktu habis';
+        }
+
+        $asli = Str::limit(trim(preg_replace('/\s+/', ' ', $pesan)), 220);
+
+        return $ringkas ? $ringkas . ' (' . $asli . ')' : $asli;
     }
 
     protected function ensurePdf(Payroll $payroll): string
@@ -592,11 +664,18 @@ class SlipController extends Controller
 
     public function kirimSatu(Request $request, Payroll $payroll)
     {
+        if ($payroll->status === 'terkirim') {
+            return response()->json(['message' => 'Slip ini sudah terkirim. Import ulang bila ada revisi.'], 422);
+        }
+
+        $payroll->load('karyawan');
         $ok = $this->kirimSatuSlip($payroll);
+        $payroll = $payroll->fresh();
 
         return response()->json([
             'ok' => $ok,
-            'status' => $payroll->fresh()->status,
+            'status' => $payroll->status,
+            'reason' => $ok ? null : ($payroll->catatan ?: 'Gagal dikirim, lihat Riwayat untuk detail.'),
         ]);
     }
 
@@ -783,6 +862,224 @@ class SlipController extends Controller
     }
 
     public function jobDilihat(ImportJob $job)
+    {
+        abort_unless((int) $job->user_id === (int) auth()->id(), 403);
+        if ($job->status !== 'berjalan') {
+            $job->update(['dilihat' => true]);
+        }
+
+        return response()->json(['ok' => true]);
+    }
+
+    /* =========================================================
+     * Pengiriman slip di latar belakang (antrian bertahap)
+     *
+     * Sama seperti import: klien membuat job (POST kirim-jobs), skrip
+     * global js/import-runner.js (SendRunner) memanggil "proses" berulang
+     * kali (beberapa slip per panggilan). Status tersimpan di database,
+     * jadi pindah menu tidak menghentikan pengiriman.
+     * ========================================================= */
+
+    private const SEND_BATCH = 4;
+
+    protected function ringkasSend(SendJob $job): array
+    {
+        $hasil = $job->hasil ?: ['terkirim' => [], 'gagal' => []];
+        $payload = $job->payload ?: [];
+
+        $out = [
+            'id' => $job->id,
+            'status' => $job->status,
+            'channel' => $job->channel,
+            'label' => $job->label,
+            'total' => (int) $job->total,
+            'processed' => (int) $job->processed,
+            'berhasil' => (int) $job->berhasil,
+            'gagalCount' => count($hasil['gagal'] ?? []),
+            'dilihat' => (bool) $job->dilihat,
+        ];
+
+        if ($job->status !== 'berjalan') {
+            $out['terkirim'] = $hasil['terkirim'] ?? [];
+            $out['gagal'] = $hasil['gagal'] ?? [];
+        } else {
+            // Untuk animasi persen di tombol per divisi (halaman Preview Slip).
+            $out['semua'] = (bool) ($payload['semua'] ?? true);
+            $out['divisi'] = $payload['divisiTarget'] ?? null;
+
+            $perDivisi = [];
+            foreach (($payload['divisiList'] ?? []) as $idx => $nama) {
+                $perDivisi[$nama] ??= ['total' => 0, 'selesai' => 0];
+                $perDivisi[$nama]['total']++;
+                if ($idx < (int) $job->processed) {
+                    $perDivisi[$nama]['selesai']++;
+                }
+            }
+            $out['perDivisi'] = (object) $perDivisi;
+        }
+
+        return $out;
+    }
+
+    public function sendAktif()
+    {
+        $job = SendJob::where('user_id', auth()->id())
+            ->where(fn($q) => $q->where('status', 'berjalan')->orWhere('dilihat', false))
+            ->latest('id')
+            ->first();
+
+        return response()->json(['job' => $job ? $this->ringkasSend($job) : null]);
+    }
+
+    public function sendBuat(Request $request)
+    {
+        $data = $request->validate([
+            'channel' => ['required', 'in:email,wa'],
+            'all' => ['nullable', 'boolean'],
+            'divisi' => ['nullable', 'string', 'max:150', 'required_without:all'],
+        ]);
+
+        $all = (bool) ($data['all'] ?? false);
+        $channel = $data['channel'];
+
+        $settings = Setting::current();
+        if ($channel === 'email' && ! $settings->email_enabled) {
+            return response()->json(['message' => 'Pengiriman Email sedang dinonaktifkan di Pengaturan.'], 422);
+        }
+        if ($channel === 'wa' && ! $settings->wa_enabled) {
+            return response()->json(['message' => 'Pengiriman WhatsApp sedang dinonaktifkan di Pengaturan.'], 422);
+        }
+
+        $berjalan = SendJob::where('user_id', auth()->id())->where('status', 'berjalan')->first();
+        if ($berjalan) {
+            return response()->json([
+                'message' => 'Masih ada pengiriman slip yang sedang diproses. Tunggu sampai selesai atau batalkan terlebih dahulu.',
+                'job' => $this->ringkasSend($berjalan),
+            ], 409);
+        }
+
+        $terpilih = Payroll::with('karyawan')
+            ->where('status', 'siap_kirim')
+            ->when(! $all, fn($q) => $q->where('divisi_snapshot', $data['divisi']))
+            ->orderBy('id')
+            ->get()
+            ->filter(fn(Payroll $p) => $this->resolveChannel($p) === $channel)
+            ->values();
+
+        $ids = $terpilih->pluck('id')->all();
+        $divisiList = $terpilih->map(fn(Payroll $p) => $p->divisi_snapshot ?: '-')->all();
+
+        if (! $ids) {
+            return response()->json(['message' => 'Tidak ada slip pada channel ini yang menunggu dikirim.'], 422);
+        }
+
+        $labelChannel = $channel === 'email' ? 'Email' : 'WhatsApp';
+        $job = SendJob::create([
+            'user_id' => auth()->id(),
+            'channel' => $channel,
+            'label' => ($all ? 'Semua divisi' : 'Divisi ' . $data['divisi']) . ' via ' . $labelChannel,
+            'total' => count($ids),
+            'status' => 'berjalan',
+            'dilihat' => false,
+            'payload' => [
+                'ids' => $ids,
+                'divisiList' => $divisiList,
+                'semua' => $all,
+                'divisiTarget' => $all ? null : $data['divisi'],
+            ],
+            'hasil' => ['terkirim' => [], 'gagal' => []],
+        ]);
+
+        return response()->json(['job' => $this->ringkasSend($job)], 201);
+    }
+
+    public function sendProses(SendJob $job)
+    {
+        abort_unless((int) $job->user_id === (int) auth()->id(), 403);
+
+        if ($job->status !== 'berjalan') {
+            return response()->json(['job' => $this->ringkasSend($job), 'sibuk' => false]);
+        }
+
+        $dikunci = SendJob::where('id', $job->id)
+            ->where(fn($q) => $q->whereNull('locked_until')->orWhere('locked_until', '<', now()))
+            ->update(['locked_until' => now()->addSeconds(240)]);
+
+        if (! $dikunci) {
+            return response()->json(['job' => $this->ringkasSend($job->fresh()), 'sibuk' => true]);
+        }
+
+        @set_time_limit(0);
+        @ini_set('memory_limit', '512M');
+        ignore_user_abort(true);
+
+        try {
+            $job = $job->fresh();
+            if ($job->status !== 'berjalan') {
+                return response()->json(['job' => $this->ringkasSend($job), 'sibuk' => false]);
+            }
+
+            $ids = ($job->payload ?: [])['ids'] ?? [];
+            $hasil = $job->hasil ?: ['terkirim' => [], 'gagal' => []];
+            $mulai = (int) $job->processed;
+            $berhasil = (int) $job->berhasil;
+
+            foreach (array_slice($ids, $mulai, self::SEND_BATCH) as $id) {
+                $payroll = Payroll::with('karyawan')->find($id);
+                $mulai++;
+
+                // Slip sudah dihapus / sudah diproses di tempat lain: lewati.
+                if ($payroll && $payroll->status === 'siap_kirim') {
+                    $karyawan = $payroll->karyawan;
+                    $snapshot = [
+                        'nik' => $payroll->karyawan_nik,
+                        'nama' => $payroll->nama_snapshot,
+                        'email' => $karyawan?->email,
+                        'wa' => $karyawan?->no_hp,
+                    ];
+
+                    if ($this->kirimSatuSlip($payroll)) {
+                        $berhasil++;
+                        $hasil['terkirim'][] = $snapshot;
+                    } else {
+                        $hasil['gagal'][] = [
+                            'row' => $snapshot,
+                            'reason' => $payroll->fresh()->catatan ?: 'Gagal dikirim, lihat Riwayat untuk detail.',
+                        ];
+                    }
+                }
+
+                $job->update(['processed' => $mulai, 'berhasil' => $berhasil, 'hasil' => $hasil]);
+            }
+
+            if ($mulai >= (int) $job->total) {
+                $job->update(['status' => 'selesai', 'payload' => null]);
+                ActivityLog::catat(
+                    'Pengiriman slip',
+                    ($job->label ?: 'Kirim slip') . ': ' . $berhasil . ' berhasil, ' . count($hasil['gagal']) . ' gagal.',
+                    ['berhasil' => $berhasil, 'gagal' => count($hasil['gagal'])]
+                );
+            }
+        } finally {
+            SendJob::where('id', $job->id)->update(['locked_until' => null]);
+        }
+
+        return response()->json(['job' => $this->ringkasSend($job->fresh()), 'sibuk' => false]);
+    }
+
+    public function sendBatal(SendJob $job)
+    {
+        abort_unless((int) $job->user_id === (int) auth()->id(), 403);
+
+        if ($job->status === 'berjalan') {
+            $job->update(['status' => 'dibatalkan', 'payload' => null, 'dilihat' => true]);
+            ActivityLog::catat('Batal kirim slip', 'Pengiriman slip dibatalkan pada ' . $job->processed . ' dari ' . $job->total . ' slip.');
+        }
+
+        return response()->json(['job' => $this->ringkasSend($job->fresh())]);
+    }
+
+    public function sendDilihat(SendJob $job)
     {
         abort_unless((int) $job->user_id === (int) auth()->id(), 403);
         if ($job->status !== 'berjalan') {

@@ -101,6 +101,7 @@ Route::middleware(['auth'])->group(function () {
         // Pengaturan aplikasi (single-row)
         Route::get('/pengaturan', [SettingController::class, 'show'])->name('pengaturan.show')->middleware('permission:setting.view');
         Route::put('/pengaturan', [SettingController::class, 'update'])->name('pengaturan.update')->middleware('permission:setting.edit');
+        Route::post('/pengaturan/retensi', [SettingController::class, 'terapkanRetensi'])->name('pengaturan.retensi')->middleware('permission:setting.edit');
 
         // Log aktivitas (read-only + tambah manual dari klien)
         Route::get('/log-aktivitas', [ActivityLogController::class, 'index'])->name('log-aktivitas.index')->middleware('permission:log-aktivitas.view');
@@ -124,6 +125,12 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/slip/import-jobs/{job}/proses', [SlipController::class, 'jobProses'])->name('slip.job.proses')->middleware('permission:kirim-slip.import');
         Route::post('/slip/import-jobs/{job}/batal', [SlipController::class, 'jobBatal'])->name('slip.job.batal')->middleware('permission:kirim-slip.import');
         Route::post('/slip/import-jobs/{job}/dilihat', [SlipController::class, 'jobDilihat'])->name('slip.job.dilihat')->middleware('permission:kirim-slip.view');
+        // Kirim slip di latar belakang (lanjut walau pindah menu)
+        Route::get('/slip/kirim-jobs/aktif', [SlipController::class, 'sendAktif'])->name('slip.send.aktif')->middleware('permission:kirim-slip.view');
+        Route::post('/slip/kirim-jobs', [SlipController::class, 'sendBuat'])->name('slip.send.buat')->middleware('permission:kirim-slip.send');
+        Route::post('/slip/kirim-jobs/{job}/proses', [SlipController::class, 'sendProses'])->name('slip.send.proses')->middleware('permission:kirim-slip.send');
+        Route::post('/slip/kirim-jobs/{job}/batal', [SlipController::class, 'sendBatal'])->name('slip.send.batal')->middleware('permission:kirim-slip.send');
+        Route::post('/slip/kirim-jobs/{job}/dilihat', [SlipController::class, 'sendDilihat'])->name('slip.send.dilihat')->middleware('permission:kirim-slip.view');
         Route::get('/slip/preview', [SlipController::class, 'preview'])->name('slip.preview')->middleware('permission:kirim-slip.view');
         Route::delete('/slip/preview', [SlipController::class, 'hapusSemuaPreview'])->name('slip.preview.hapus-semua')->middleware('permission:kirim-slip.import');
         Route::delete('/slip/preview/{payroll}', [SlipController::class, 'hapusPreview'])->name('slip.preview.hapus')->middleware('permission:kirim-slip.import');

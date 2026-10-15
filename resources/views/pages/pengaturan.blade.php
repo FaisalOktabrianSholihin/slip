@@ -6,7 +6,7 @@
 @section('page-icon', 'bi-gear-fill')
 
 @push('styles')
-    <link rel="stylesheet" href="{{ asset('css/pengaturan.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/pengaturan.css') }}?v=20261011-1">
 @endpush
 
 @section('content')
@@ -24,7 +24,10 @@
             <div class="card-head">
                 <div><span class="eyebrow">EMAIL PENGIRIM</span>
                     <h2>Identitas pengirim slip</h2>
-                    <p>Alamat dan nama ini digunakan sebagai pengirim email slip gaji, tanpa mengubah file .env.</p>
+                    <p>Diambil dari file .env. Mengganti alamat email di sini otomatis memperbarui
+                        <code>MAIL_USERNAME</code>, <code>MAIL_FROM_ADDRESS</code> dan <code>MAIL_PASSWORD</code>
+                        di .env, jadi slip benar-benar dikirim dari akun yang baru.
+                    </p>
                 </div><i class="bi bi-envelope-at-fill"></i>
             </div>
             <div class="setting-row">
@@ -34,6 +37,13 @@
             <div class="setting-row">
                 <div class="setting-copy"><strong>Alamat email pengirim</strong></div><input id="senderEmail" type="email"
                     maxlength="150" required placeholder="penggajian@perusahaan.co.id">
+            </div>
+            <div class="setting-row">
+                <div class="setting-copy"><strong>Password aplikasi email</strong><span id="senderPasswordHint">Wajib diisi
+                        bila
+                        alamat email diganti (untuk Gmail gunakan App Password 16 karakter). Kosongkan bila tidak
+                        berubah.</span></div><input id="senderPassword" type="password" maxlength="100"
+                    autocomplete="new-password" placeholder="Kosongkan jika tidak diubah">
             </div>
         </section>
         <section class="settings-card">
@@ -96,9 +106,10 @@
             <div class="card-head">
                 <div><span class="eyebrow">STATUS PENYIMPANAN</span>
                     <h2>Data saat ini</h2>
-                    <p>Ringkasan data yang tersimpan pada browser untuk simulasi aplikasi.</p>
+                    <p>Ringkasan data yang tersimpan di server aplikasi.</p>
                 </div><i class="bi bi-bar-chart-fill"></i>
             </div>
+
             <div class="storage-stats">
                 <div><strong id="historyCount">0</strong><span>Riwayat slip</span></div>
                 <div><strong id="payrollCount">0</strong><span>Payroll menunggu</span></div>
@@ -108,11 +119,12 @@
         </section>
         <div class="settings-actions"><button class="secondary-btn" id="resetBtn" type="button">Kembalikan
                 Default</button><button class="primary-btn" id="saveBtn" type="button"><i
-                    class="bi bi-check2-circle"></i> Simpan Pengaturan</button></div>
+                    class="bi bi-check2-circle"></i> Simpan Pengaturan</button>
+        </div>
     </div>
 @endsection
 
 @push('scripts')
     <script src="{{ asset('js/slip-common.js') }}"></script>
-    <script src="{{ asset('js/pengaturan.js') }}"></script>
+    <script src="{{ asset('js/pengaturan.js') }}?v=20261011-1"></script>
 @endpush

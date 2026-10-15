@@ -7,7 +7,7 @@
 
 @push('styles')
     <link rel="stylesheet" href="{{ asset('css/kirim-slip.css') }}">
-    <link rel="stylesheet" href="{{ asset('css/preview-slip.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/preview-slip.css') }}?v=20261015-1">
 @endpush
 
 @section('content')
@@ -74,5 +74,5 @@
         window.ESLIP_LOGO_URL = @json(asset('assets/logo.png'));
     </script>
     <script src="{{ asset('js/slip-common.js') }}"></script>
-    <script src="{{ asset('js/preview-slip.js') }}"></script>
+    <script src="{{ asset('js/preview-slip.js') }}?v=20261015-2"></script>
 @endpush

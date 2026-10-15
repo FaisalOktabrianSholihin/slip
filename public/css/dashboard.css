@@ -655,3 +655,6 @@ body {
   background: #cfdef5;
   color: #1f4b8f;
 }
+/* Kotak dashboard diatur dari menu Pengaturan */
+.kpi-grid--single { grid-template-columns: 1fr !important; }
+.kpi-status-breakdown[hidden], .kpi-card[hidden] { display: none !important; }

@@ -16,6 +16,14 @@ function initDashboard(data) {
       pkwt_hl: ['pkwt_hl', 'PKWT-HL'], pkwt_os: ['pkwt_os', 'PKWT-OS'],
       penugasan: ['penugasan', 'Karyawan Penugasan']
     };
+    // Pengaturan > Kotak Dashboard: tampilkan/sembunyikan komponen ringkasan.
+    const pilih = Array.isArray(kpi.dashboardKpis) ? kpi.dashboardKpis : ['total', 'status', 'masaKerja5'];
+    const statusBox = document.getElementById('kpiStatusBreakdown');
+    const tenureCard = document.getElementById('kpiMasaKerjaCard');
+    if (statusBox) statusBox.hidden = !pilih.includes('status');
+    if (tenureCard) tenureCard.hidden = !pilih.includes('masaKerja5');
+    const grid = tenureCard && tenureCard.parentElement;
+    if (grid) grid.classList.toggle('kpi-grid--single', !pilih.includes('masaKerja5'));
     Object.entries(aliases).forEach(([key, variants]) => {
       const node = document.querySelector('[data-status="' + key + '"]');
       const row = statusRows.find(item => variants.includes(item.key) || variants.includes(item.label));

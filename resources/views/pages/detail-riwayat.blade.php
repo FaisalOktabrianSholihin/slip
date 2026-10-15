@@ -6,7 +6,7 @@
 @section('page-icon', 'bi-clock-history')
 
 @push('styles')
-    <link rel="stylesheet" href="{{ asset('css/detail-riwayat.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/detail-riwayat.css') }}?v=20261015-1">
 @endpush
 
 @section('content')
@@ -24,7 +24,7 @@
                 </div>
                 <div class="field filter-field" id="filterField">
                     <button aria-expanded="false" aria-haspopup="true" class="filter-trigger" id="filterTrigger"
-                        title="September 2026" type="button">
+                        title="Semua bulan" type="button">
                         <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
                             stroke-width="2" viewbox="0 0 24 24">
                             <polygon points="3 4 21 4 14 12.5 14 19 10 21 10 12.5 3 4"></polygon>
@@ -42,7 +42,7 @@
                                 <option value="6">Juni</option>
                                 <option value="7">Juli</option>
                                 <option value="8">Agustus</option>
-                                <option selected="" value="9">September</option>
+                                <option value="9">September</option>
                                 <option value="10">Oktober</option>
                                 <option value="11">November</option>
                                 <option value="12">Desember</option>
@@ -53,7 +53,7 @@
                             <select id="filterTahunSelect">
                                 <option value="2024">2024</option>
                                 <option value="2025">2025</option>
-                                <option selected="" value="2026">2026</option>
+                                <option value="2026">2026</option>
                                 <option value="2027">2027</option>
                             </select>
                         </div>
@@ -63,6 +63,11 @@
                         </div>
                     </div>
                 </div>
+                <select class="entries-select" id="filterStatus" aria-label="Filter status">
+                    <option value="">Semua status</option>
+                    <option value="berhasil">Berhasil</option>
+                    <option value="gagal">Gagal</option>
+                </select>
                 <select class="entries-select" id="entriesPerPage">
                     <option value="10">10 / halaman</option>
                     <option selected value="20">20 / halaman</option>
@@ -122,5 +127,5 @@
 @push('scripts')
     <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
     <script src="{{ asset('js/slip-common.js') }}"></script>
-    <script src="{{ asset('js/detail-riwayat.js') }}"></script>
+    <script src="{{ asset('js/detail-riwayat.js') }}?v=20261015-1"></script>
 @endpush

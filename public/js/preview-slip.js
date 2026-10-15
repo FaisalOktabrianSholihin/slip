@@ -67,21 +67,20 @@
     return esc(text.slice(0, i)) + '<mark>' + esc(text.slice(i, i + kw.length)) + '</mark>' + esc(text.slice(i + kw.length));
   }
 
-  function statusFor(row, channel) {
-    const item = historyCache.find((h) =>
-      h.nik === row.nik &&
-      (h.channel || 'email') === channel
-    );
-    if (!item) return { text: 'Menunggu', type: 'pending' };
-    if (String(item.status).toLowerCase() === 'berhasil') return { text: 'Berhasil', type: 'success' };
-    if (String(item.status).toLowerCase() === 'gagal') return { text: 'Gagal', type: 'failed' };
-    return { text: item.status || 'Menunggu', type: 'pending' };
+  /* Status mengikuti hasil kirim TERAKHIR setelah slip ini diimport/diperbarui
+     (dihitung server). Slip yang baru diimport ulang selalu kembali "Menunggu",
+     walau periode yang sama pernah terkirim sebelumnya. */
+  function statusFor(row) {
+    const last = String(row.lastStatus || '').toLowerCase();
+    if (last === 'gagal') return { text: 'Gagal', type: 'failed', reason: row.lastReason || '' };
+    if (last === 'berhasil') return { text: 'Berhasil', type: 'success' };
+    return { text: 'Menunggu', type: 'pending' };
   }
 
   function statusBadge(status) {
     const icon = status.type === 'success' ? 'bi-check-circle-fill'
       : status.type === 'failed' ? 'bi-x-circle-fill' : 'bi-hourglass-split';
-    return '<span class="ps-status ps-status--' + esc(status.type) + '">' +
+    return '<span class="ps-status ps-status--' + esc(status.type) + '"' + (status.reason ? ' title="' + esc(status.reason) + '"' : '') + '>' +
       '<i class="bi ' + icon + '" aria-hidden="true"></i><span>' + esc(status.text) + '</span></span>';
   }
 
@@ -170,8 +169,17 @@
     const emailGroups = groupRows(visible.flatMap((g) => g[1]).filter((r) => r.channel === 'email'));
     const waGroups = groupRows(visible.flatMap((g) => g[1]).filter((r) => r.channel === 'wa'));
 
-    summaryEl.innerHTML = '<strong>' + rows.length + '</strong> karyawan &middot; <strong>' + allGroups.length + '</strong> divisi &middot; Email <strong>' + rows.filter(r => r.channel === 'email').length + '</strong> &middot; WA <strong>' + rows.filter(r => r.channel === 'wa').length + '</strong>';
-    listEl.innerHTML = channelHtml('email', emailGroups) + channelHtml('wa', waGroups);
+    // Channel yang dimatikan di menu Pengaturan tidak ditampilkan sama sekali.
+    const showEmail = settingsCache.emailEnabled !== false;
+    const showWa = settingsCache.waEnabled !== false;
+    const parts = ['<strong>' + rows.length + '</strong> karyawan', '<strong>' + allGroups.length + '</strong> divisi'];
+    if (showEmail) parts.push('Email <strong>' + rows.filter(r => r.channel === 'email').length + '</strong>');
+    if (showWa) parts.push('WA <strong>' + rows.filter(r => r.channel === 'wa').length + '</strong>');
+    summaryEl.innerHTML = parts.join(' &middot; ');
+    listEl.innerHTML = (showEmail ? channelHtml('email', emailGroups) : '') + (showWa ? channelHtml('wa', waGroups) : '') +
+      ((!showEmail && !showWa) ? '<p class="ps-none">Pengiriman Email dan WhatsApp sedang dinonaktifkan di menu Pengaturan.</p>' : '');
+    btnAll.hidden = !showEmail;
+    btnAllWa.hidden = !showWa;
 
     const settings = settingsCache;
     const hasEmail = rows.some((r) => r.channel === 'email');
@@ -187,6 +195,8 @@
       b.disabled = !enabled;
       b.title = enabled ? b.title : 'Pengiriman ' + (ch === 'email' ? 'Email' : 'WhatsApp') + ' dinonaktifkan di Pengaturan';
     });
+    // render() membuat ulang tombol divisi; pasang kembali animasi persen bila pengiriman masih berjalan.
+    if (currentJob) applySendProgress(currentJob);
   }
 
   function getDivisions() { return groupRows(rows).map((g) => g[0]); }
@@ -222,9 +232,50 @@
     listEl.querySelectorAll('[data-send]').forEach((b) => { b.disabled = on || (b.getAttribute('data-channel') === 'email' ? !settings.emailEnabled : !settings.waEnabled); });
   }
 
-  function progressButton(scope) {
-    if (scope.all) return scope.channel === 'wa' ? btnAllWa : btnAll;
-    return listEl.querySelector('[data-channel="' + scope.channel + '"] [data-send][data-divisi="' + CSS.escape(scope.divisi) + '"]');
+  /* ---------- Animasi persen pada tombol kirim (per divisi & kirim semua) ---------- */
+  let currentJob = null;
+
+  function clearBtnProgress(btn) {
+    if (!btn || !btn.hasAttribute('data-orig')) return;
+    btn.innerHTML = btn.getAttribute('data-orig');
+    btn.removeAttribute('data-orig');
+    btn.classList.remove('is-progress');
+    btn.style.removeProperty('--p');
+  }
+
+  function setBtnProgress(btn, pct) {
+    if (!btn) return;
+    if (!btn.hasAttribute('data-orig')) btn.setAttribute('data-orig', btn.innerHTML);
+    pct = Math.max(0, Math.min(100, Math.round(pct)));
+    const done = pct >= 100;
+    btn.classList.add('is-progress');
+    btn.style.setProperty('--p', pct + '%');
+    btn.innerHTML = '<i class="bi ' + (done ? 'bi-check-circle-fill' : 'bi-arrow-repeat ps-spin') + '" aria-hidden="true"></i>' +
+      '<span class="ps-mini__pct">' + pct + '%</span>';
+    btn.setAttribute('aria-label', 'Mengirim ' + pct + ' persen');
+  }
+
+  function applySendProgress(job) {
+    const buttons = $$('[data-send]', listEl).concat([btnAll, btnAllWa]);
+    buttons.forEach(clearBtnProgress);
+    if (!job || job.status !== 'berjalan') return;
+
+    const overall = job.total ? job.processed / job.total * 100 : 0;
+    const per = job.perDivisi || null;
+    const channel = job.channel || 'email';
+
+    // Tombol "Kirim Semua" hanya bergerak bila pengiriman memang untuk semua divisi.
+    if (job.semua !== false) setBtnProgress(channel === 'wa' ? btnAllWa : btnAll, overall);
+
+    $$('[data-send]', listEl).forEach((b) => {
+      if (b.getAttribute('data-channel') !== channel) return;
+      const divisi = b.getAttribute('data-divisi');
+      if (per && per[divisi] && per[divisi].total) {
+        setBtnProgress(b, per[divisi].selesai / per[divisi].total * 100);
+      } else if (job.semua === false && job.divisi === divisi) {
+        setBtnProgress(b, overall);
+      }
+    });
   }
 
   async function sendFlow(scope) {
@@ -250,28 +301,81 @@
     });
     if (answer !== 'send') return;
 
+    // Kirim di latar belakang: server memproses bertahap, boleh pindah menu.
     setBusy(true);
-    const btn = progressButton(scope);
-    let restore = null;
-    if (btn) {
-      const icon = $('i', btn), labelEl = $('span', btn);
-      restore = { iconClass: icon.className, text: labelEl.textContent };
-      icon.className = 'bi bi-arrow-repeat is-spin';
-    }
-
-    let res;
     try {
-      if (btn) { const labelEl = $('span', btn); if (labelEl) labelEl.textContent = 'Mengirim…'; }
-      res = await SlipStore.sendChannel({ all: scope.all, divisi: scope.divisi, channel });
+      await SendRunner.start({ all: !!scope.all, divisi: scope.divisi || null, channel: channel });
+      SlipUI.toast('Pengiriman berjalan di latar belakang. Anda boleh berpindah menu.', 'info');
     } catch (err) {
-      if (btn && restore) { $('i', btn).className = restore.iconClass; $('span', btn).textContent = restore.text; }
-      setBusy(false); render(); SlipUI.toast('Terjadi kesalahan saat mengirim. Coba lagi.', 'error'); return;
+      setBusy(false); render();
+      SlipUI.toast(err.message || 'Gagal memulai pengiriman. Coba lagi.', 'error');
     }
+  }
 
+  /* ---------- Tampilan mengikuti status job pengiriman (juga saat kembali dari menu lain) ---------- */
+  let lastShownSend = null;
+  let reloading = false;
+  let progressEl = null;
+
+  function ensureProgress() {
+    if (progressEl) return progressEl;
+    progressEl = document.createElement('div');
+    progressEl.className = 'ks-result';
+    progressEl.hidden = true;
+    progressEl.style.margin = '0 0 14px';
+    contentEl.insertBefore(progressEl, contentEl.firstChild);
+    progressEl.addEventListener('click', (e) => {
+      if (e.target.closest('[data-resume-send]')) SendRunner.resume();
+      if (e.target.closest('[data-cancel-send]')) {
+        SlipUI.dialog({
+          title: 'Batalkan pengiriman?', html: '<p class="ks-result__lead">Slip yang sudah terkirim tetap tercatat di Riwayat. Sisanya tetap menunggu di daftar preview.</p>',
+          buttons: [{ label: 'Lanjutkan kirim', kind: 'outline', value: 'no' }, { label: 'Batalkan', kind: 'primary', value: 'yes' }]
+        }).then((v) => { if (v === 'yes') SendRunner.cancel(); });
+      }
+    });
+    return progressEl;
+  }
+
+  function renderSendProgress(job) {
+    const el = ensureProgress();
+    const pct = job.total ? Math.round(job.processed / job.total * 100) : 0;
+    el.hidden = false;
+    el.innerHTML = '<strong><i class="bi ' + (job.terputus ? 'bi-exclamation-triangle-fill' : 'bi-arrow-repeat is-spin') + '"></i> ' + (job.terputus ? 'Pengiriman terhenti (koneksi bermasalah)' : 'Mengirim slip di latar belakang') + '</strong>' +
+      '<p>' + esc(job.label || '') + ': ' + job.processed + ' dari ' + job.total + ' slip diproses (' + pct + '%), ' + job.berhasil + ' terkirim' + (job.gagalCount ? ', ' + job.gagalCount + ' gagal' : '') + '. Anda boleh berpindah menu; proses tetap berjalan.</p>' +
+      '<div class="ks-progress"><span style="width:' + pct + '%"></span></div>' +
+      '<div class="ks-progress-actions">' + (job.terputus ? '<button type="button" class="ks-btn ks-btn--primary ks-btn--sm" data-resume-send>Lanjutkan</button>' : '') + '<button type="button" class="ks-btn ks-btn--outline ks-btn--sm" data-cancel-send>Batalkan pengiriman</button></div>';
+  }
+
+  async function onSendUpdate(job) {
+    const active = !!job && job.status === 'berjalan';
+    currentJob = active ? job : null;
+    if (active) {
+      setBusy(true);
+      renderSendProgress(job);
+      applySendProgress(job);
+      if (!reloading) {
+        reloading = true; await load(); reloading = false;
+        if (rows.length) { render(); setBusy(true); }
+        applySendProgress(currentJob);
+      }
+      return;
+    }
+    applySendProgress(null);
+    if (progressEl) progressEl.hidden = true;
+    if (busy) setBusy(false);
+    if (!job) return;
+    if (lastShownSend === job.id) return;
+    lastShownSend = job.id;
     didSend = true;
-    if (btn && restore) { $('i', btn).className = restore.iconClass; $('span', btn).textContent = restore.text; }
-    setBusy(false); await load(); render();
-    const choice = await showSendResult(res, label);
+    await load(); render();
+    const label = job.channel === 'wa' ? 'WhatsApp' : 'email';
+    if (job.status === 'dibatalkan') {
+      SlipUI.toast('Pengiriman dibatalkan. ' + job.berhasil + ' slip sudah terkirim.', 'info');
+      SendRunner.dismiss();
+      return;
+    }
+    const choice = await showSendResult({ terkirim: job.terkirim || [], gagal: job.gagal || [] }, label);
+    SendRunner.dismiss();
     if (choice === 'riwayat') window.location.href = '/detail-riwayat';
   }
 
@@ -285,7 +389,7 @@
         labels: ['Total slip', 'Terkirim', 'Gagal'],
         itemsTitle: 'Slip yang gagal dikirim',
         items: res.gagal.map((g) => ({ title: g.row.nama, sub: (label === 'email' ? g.row.email : g.row.wa) + ' — ' + g.reason })),
-        note: nFail > 0 ? 'Slip yang gagal tetap ada di daftar dan bisa dikirim ulang.' : 'Semua pengiriman tercatat di Riwayat.'
+        note: nFail > 0 ? 'Slip yang gagal tercatat di Riwayat beserta alasannya, dan bisa dikirim ulang dari sana.' : 'Semua pengiriman tercatat di Riwayat.'
       }),
       buttons: [{ label: 'Tutup', kind: 'outline', value: 'close' }, { label: 'Lihat Riwayat', kind: 'primary', value: 'riwayat' }]
     });
@@ -295,11 +399,17 @@
     const cfg = row.componentConfig || { additions: [], deductions: [] };
     const additions = Array.isArray(cfg.additions) && cfg.additions.length > 0 ? cfg.additions : ['Tunjangan Jabatan', 'Tunjangan Bansos', 'Tunjangan Managerial', 'Tambahan 4', 'Tambahan 5', 'Tambahan 6', 'Tambahan 7', 'Tambahan 8', 'Tambahan 9', 'Tambahan 10', 'Tambahan 11', 'Tambahan 12', 'Tambahan 13', 'Tambahan 14', 'Tambahan 15', 'Tambahan 16', 'Tambahan 17', 'Tambahan 18', 'Tambahan 19', 'Tambahan 20'];
     const deductions = Array.isArray(cfg.deductions) && cfg.deductions.length > 0 ? cfg.deductions : ['BP JAMSOSTEK (JHT: 2%); (JP: 1%)', 'BPJS-Kshtn (JK:1%)', 'BNI (DPLK Simponi)', 'KSU Kel. Mitratani', 'Iuran Anggota SPA', 'BTN (KPR)', 'BRI Cab Jember (Briguna)', 'BRI Unit Serut (Golbertap)', 'Bank BSM (Pembiayaan Syariah)', 'Pengembalian Gaji (Kary Renbang)', 'Iuran IIKB', 'Potongan Kopkar PTPN I R5', 'Pengembalian Bonus Thn 2023', 'Potongan Dapenbun', 'Potongan gaji (Masjid)', 'Potongan Waring', 'Pembelian Pengembalian DPU', 'Potongan 18', 'Potongan 19', 'Potongan 20'];
+    // Pakai daftar komponen dari server (nama + nominal) agar sama persis dengan PDF.
+    // Cadangan: pemetaan nomor kolom untuk data lama.
     const addValues = [];
-    for (let i = 1; i <= 20; i++) if (Number(row['tambahan' + i] || 0) > 0) addValues.push([additions[i - 1] || ('Tambahan ' + i), row['tambahan' + i]]);
-    // Gaji Pokok selalu tampil sebagai komponen utama, bukan tambahan 1 dari Excel.
     const deductionsWithValues = [];
-    for (let i = 1; i <= 20; i++) if (Number(row['potongan' + i] || 0) > 0) deductionsWithValues.push([deductions[i - 1] || ('Potongan ' + i), row['potongan' + i]]);
+    if (Array.isArray(row.tambahanItems) && Array.isArray(row.potonganItems)) {
+      row.tambahanItems.forEach((x) => { if (Number(x.jumlah) > 0) addValues.push([x.nama, x.jumlah]); });
+      row.potonganItems.forEach((x) => { if (Number(x.jumlah) > 0) deductionsWithValues.push([x.nama, x.jumlah]); });
+    } else {
+      for (let i = 1; i <= 20; i++) if (Number(row['tambahan' + i] || 0) > 0) addValues.push([additions[i - 1] || ('Tambahan ' + i), row['tambahan' + i]]);
+      for (let i = 1; i <= 20; i++) if (Number(row['potongan' + i] || 0) > 0) deductionsWithValues.push([deductions[i - 1] || ('Potongan ' + i), row['potongan' + i]]);
+    }
     const totalTambahan = addValues.reduce((n, x) => n + Number(x[1] || 0), 0);
     const totalPotongan = deductionsWithValues.reduce((n, x) => n + Number(x[1] || 0), 0);
     const gross = Number(row.gajiPokok || 0) + totalTambahan;
@@ -415,5 +525,8 @@
   btnAllWa.addEventListener('click', () => sendFlow({ all: true, channel: 'wa' }));
   if (btnDeleteAll) btnDeleteAll.addEventListener('click', deleteAll);
 
-  load().then(render);
+  load().then(() => {
+    render();
+    if (window.SendRunner) SendRunner.subscribe(onSendUpdate);
+  });
 })();

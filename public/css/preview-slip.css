@@ -309,6 +309,90 @@
   cursor: progress;
 }
 
+/* Animasi persen saat slip sedang dikirim (tombol per divisi & Kirim Semua) */
+.ps-mini.is-progress,
+.ks-btn.is-progress {
+  position: relative;
+  overflow: hidden;
+  opacity: 1;
+  cursor: progress;
+}
+
+.ps-mini.is-progress {
+  min-width: 92px;
+}
+
+.ps-mini.is-progress::before,
+.ks-btn.is-progress::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--p, 0%);
+  background: rgba(7, 139, 76, .28);
+  transition: width .5s ease;
+}
+
+.ps-mini--wa.is-progress::before {
+  background: rgba(255, 255, 255, .38);
+}
+
+.ks-btn--primary.is-progress::before {
+  background: rgba(255, 255, 255, .28);
+}
+
+.ps-mini.is-progress::after,
+.ks-btn.is-progress::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, .5) 50%, transparent 70%);
+  background-size: 200% 100%;
+  animation: ps-shimmer 1.4s linear infinite;
+  pointer-events: none;
+}
+
+.ps-mini.is-progress>*,
+.ks-btn.is-progress>* {
+  position: relative;
+  z-index: 1;
+}
+
+.ps-mini__pct {
+  min-width: 2.7ch;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.ps-spin {
+  display: inline-block;
+  animation: ps-spin .9s linear infinite;
+}
+
+@keyframes ps-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes ps-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  .ps-spin,
+  .ps-mini.is-progress::after,
+  .ks-btn.is-progress::after {
+    animation: none;
+  }
+}
+
 .ps-group__body {
   overflow-x: auto;
 }

@@ -990,3 +990,57 @@ tbody tr:last-child td {
   opacity: .4;
   cursor: not-allowed
 }
+
+/* Alasan gagal + tombol kirim ulang di kolom Status */
+.fail-reason {
+  display: block;
+  max-width: 260px;
+  margin-top: 6px;
+  color: var(--bad-fg);
+  font-size: 12px;
+  line-height: 1.35;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.fail-reason i {
+  font-size: 11px;
+}
+
+.resend-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 6px;
+  padding: 4px 10px;
+  border: 1px solid var(--bad-dot);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--bad-fg);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.resend-btn:hover:not([disabled]) {
+  background: var(--bad-bg);
+}
+
+.resend-btn[disabled] {
+  opacity: .7;
+  cursor: progress;
+}
+
+.resend-spin {
+  display: inline-block;
+  animation: resend-spin .9s linear infinite;
+}
+
+@keyframes resend-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

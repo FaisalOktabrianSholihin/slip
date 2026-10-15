@@ -52,7 +52,7 @@
     <script src="<?php echo e(asset('js/sidebar.js')); ?>"></script>
     <script src="<?php echo e(asset('js/topheader.js')); ?>"></script>
     <script src="<?php echo e(asset('js/auth.js')); ?>"></script>
-    <script src="<?php echo e(asset('js/import-runner.js')); ?>?v=20261010-1"></script>
+    <script src="<?php echo e(asset('js/import-runner.js')); ?>?v=20261011-1"></script>
     <?php echo $__env->yieldPushContent('scripts'); ?>
 </body>
 

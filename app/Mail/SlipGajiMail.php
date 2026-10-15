@@ -55,7 +55,7 @@ class SlipGajiMail extends Mailable
     {
         $setting = Setting::current();
         return new Envelope(
-            from: new \Illuminate\Mail\Mailables\Address($setting->sender_email ?: config('mail.from.address'), $setting->sender_name ?: config('mail.from.name')),
+            from: new \Illuminate\Mail\Mailables\Address(config('mail.from.address') ?: $setting->sender_email, $setting->sender_name ?: config('mail.from.name')),
             subject: $this->template->subjectFor($this->variabel()),
         );
     }

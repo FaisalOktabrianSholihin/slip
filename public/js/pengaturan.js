@@ -1,54 +1,58 @@
 document.addEventListener('DOMContentLoaded', function () {
   const retention = document.getElementById('retentionMonths'), email = document.getElementById('emailEnabled'), wa = document.getElementById('waEnabled'), notice = document.getElementById('saveNotice'), senderName = document.getElementById('senderName'), senderEmail = document.getElementById('senderEmail'), kpiStatus = document.getElementById('kpiStatus'), kpiMasaKerja = document.getElementById('kpiMasaKerja');
 
-  function load() {
-    Promise.all([
-      SlipStore.getSettings(),
-      SlipStore.getHistory(),
-      SlipStore.getPreviewRows(),
-      SlipStore.getActivityLogs()
-    ]).then(function (results) {
-      const s = results[0];
-      retention.value = String(s.retentionMonths);
-      email.checked = s.emailEnabled;
-      wa.checked = s.waEnabled;
-      if (senderName) senderName.value = s.senderName || 'E-Slip Gaji Mitratani';
-      if (senderEmail) senderEmail.value = s.senderEmail || '';
-      if (kpiStatus) kpiStatus.checked = (s.dashboardKpis || ['total', 'status', 'masaKerja5']).includes('status');
-      if (kpiMasaKerja) kpiMasaKerja.checked = (s.dashboardKpis || ['total', 'status', 'masaKerja5']).includes('masaKerja5');
-      document.getElementById('historyCount').textContent = results[1].length;
-      document.getElementById('payrollCount').textContent = results[2].length;
-      document.getElementById('activityCount').textContent = results[3].length;
-    }).catch(function (err) {
-      show('Gagal memuat pengaturan: ' + err.message, true);
-    });
+  const senderPassword = document.getElementById('senderPassword');
+  const setText = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  const DEFAULT_KPIS = ['total', 'status', 'masaKerja5'];
+
+  function applySettings(s) {
+    const months = String(s.retentionMonths || 1);
+    if (!Array.from(retention.options).some(o => o.value === months)) {
+      const o = document.createElement('option'); o.value = months; o.textContent = months + ' bulan'; retention.appendChild(o);
+    }
+    retention.value = months;
+    email.checked = !!s.emailEnabled;
+    wa.checked = !!s.waEnabled;
+    if (senderName) senderName.value = s.senderName || 'E-Slip Gaji Mitratani';
+    if (senderEmail) senderEmail.value = s.senderEmail || '';
+    if (senderPassword) { senderPassword.value = ''; senderPassword.placeholder = s.senderPasswordSet ? '•••••••• (tersimpan di .env, kosongkan jika tidak diubah)' : 'Belum ada password di .env'; }
+    const kpis = Array.isArray(s.dashboardKpis) ? s.dashboardKpis : DEFAULT_KPIS;
+    if (kpiStatus) kpiStatus.checked = kpis.includes('status');
+    if (kpiMasaKerja) kpiMasaKerja.checked = kpis.includes('masaKerja5');
   }
 
+  // Tiap angka dimuat sendiri: user tanpa izin riwayat/log (403) tidak membuat seluruh halaman gagal.
   function refreshStats() {
-    Promise.all([SlipStore.getHistory(), SlipStore.getPreviewRows(), SlipStore.getActivityLogs()])
-      .then(function (r) {
-        document.getElementById('historyCount').textContent = r[0].length;
-        document.getElementById('payrollCount').textContent = r[1].length;
-        document.getElementById('activityCount').textContent = r[2].length;
-      });
+    [['historyCount', () => SlipStore.getHistory()], ['payrollCount', () => SlipStore.getPreviewRows()], ['activityCount', () => SlipStore.getActivityLogs()]]
+      .forEach(function (x) { x[1]().then(r => setText(x[0], Array.isArray(r) ? r.length : 0)).catch(() => setText(x[0], '-')); });
+  }
+
+  function load() {
+    SlipStore.getSettings().then(applySettings).catch(function (err) { show('Gagal memuat pengaturan: ' + err.message, true); });
+    refreshStats();
   }
 
   function show(msg, error) {
     notice.hidden = false;
     notice.className = 'save-notice' + (error ? ' error' : '');
     notice.innerHTML = '<i class="bi ' + (error ? 'bi-exclamation-circle-fill' : 'bi-check-circle-fill') + '"></i> ' + SlipUI.esc(msg);
-    setTimeout(() => notice.hidden = true, 3500);
+    clearTimeout(show._t);
+    show._t = setTimeout(() => notice.hidden = true, error ? 7000 : 4000);
+    notice.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
   document.getElementById('saveBtn').addEventListener('click', function () {
-    const payload = { retentionMonths: Number(retention.value), emailEnabled: email.checked, waEnabled: wa.checked, senderName: senderName?.value.trim(), senderEmail: senderEmail?.value.trim(), dashboardKpis: ['total', ...(kpiStatus?.checked ? ['status'] : []), ...(kpiMasaKerja?.checked ? ['masaKerja5'] : [])] };
+    const btn = this;
+    const payload = { retentionMonths: Number(retention.value), emailEnabled: email.checked, waEnabled: wa.checked, senderName: senderName?.value.trim(), senderEmail: senderEmail?.value.trim(), senderPassword: senderPassword?.value || '', dashboardKpis: ['total', ...(kpiStatus?.checked ? ['status'] : []), ...(kpiMasaKerja?.checked ? ['masaKerja5'] : [])] };
     if (!payload.senderName || !payload.senderEmail) { show('Nama dan alamat email pengirim wajib diisi.', true); return; }
-    SlipStore.saveSettings(payload).then(function (s) {
+    btn.disabled = true;
+    SlipStore.saveSettings(payload).then(function (saved) {
+      applySettings(saved);
       refreshStats();
       show('Pengaturan berhasil disimpan.');
     }).catch(function (err) {
       show('Gagal menyimpan pengaturan: ' + err.message, true);
-    });
+    }).then(function () { btn.disabled = false; });
   });
 
   document.getElementById('resetBtn').addEventListener('click', function () {
@@ -57,11 +61,16 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   document.getElementById('cleanupBtn').addEventListener('click', function () {
-    SlipStore.cleanupStoredData().then(function () {
-      return SlipStore.addActivity('Terapkan retensi', 'Menjalankan pembersihan data slip sesuai periode retensi.');
-    }).then(function () {
-      refreshStats();
-      show('Retensi data berhasil diterapkan.');
+    const btn = this, months = retention.value;
+    UI.confirm('Riwayat pengiriman dan data payroll yang lebih lama dari ' + months + ' bulan akan dihapus permanen. Log aktivitas tidak ikut dihapus. Lanjutkan?', { danger: true, title: 'Terapkan retensi sekarang?', okText: 'Ya, Bersihkan' }).then(function (ok) {
+      if (!ok) return;
+      btn.disabled = true;
+      SlipStore.cleanupStoredData().then(function (res) {
+        refreshStats();
+        show('Retensi diterapkan: ' + (res.riwayat || 0) + ' riwayat dan ' + (res.payroll || 0) + ' payroll lama dihapus.');
+      }).catch(function (err) {
+        show('Gagal menerapkan retensi: ' + err.message, true);
+      }).then(function () { btn.disabled = false; });
     });
   });
 

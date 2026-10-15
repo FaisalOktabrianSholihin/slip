@@ -40,13 +40,9 @@
     return Api.put('/api/pengaturan', s);
   }
 
-  /* Tidak ada job retensi otomatis di server pada paket ini -
-     endpoint pengaturan sudah menyimpan kebijakannya, tapi
-     pembersihan data lampau perlu dijadwalkan terpisah (mis. lewat
-     Laravel Scheduler) bila dibutuhkan. Dibiarkan no-op supaya
-     tombol "Terapkan retensi sekarang" di UI tidak error. */
+  /* Terapkan retensi sekarang: hapus riwayat & payroll yang melewati periode retensi. */
   function cleanupStoredData() {
-    return Promise.resolve();
+    return Api.post('/api/pengaturan/retensi');
   }
 
   /* =========================================================
