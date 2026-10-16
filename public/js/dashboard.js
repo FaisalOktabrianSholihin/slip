@@ -39,7 +39,7 @@ function initDashboard(data) {
     if (!d || isNaN(d)) { el.textContent = 'Belum ada data karyawan yang diisi.'; return; }
     const tgl = d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
     const jam = d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':');
-    el.textContent = 'Data karyawan terakhir diperbarui pada ' + tgl + ', pukul ' + jam + ' WIB (berdasarkan pengisian terakhir di menu Karyawan).';
+    el.textContent = 'Data karyawan terakhir diperbarui pada ' + tgl + ', pukul ' + jam + ' WIB ';
   })();
 
   /* ===== Warna dari CSS variables ===== */

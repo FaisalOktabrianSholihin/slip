@@ -148,6 +148,35 @@ class KaryawanController extends Controller
     }
 
     /**
+     * Samakan isian yang berasal dari dropdown (golongan, agama, status nikah,
+     * jenis kelamin, jaminan kesehatan) ke nilai baku. Excel sering berisi
+     * "Laki-laki", "ISLAM" atau "3", sedangkan form/tampilan hanya mengenal
+     * L/P, Islam dan III. Nilai yang tidak dikenali dibiarkan apa adanya
+     * (tidak dibuang), supaya data tidak hilang diam-diam.
+     */
+    protected function normalisasiPilihan(array $data): array
+    {
+        $map = [
+            'golongan' => 'normalisasiGolongan',
+            'agama' => 'normalisasiAgama',
+            'statusNikah' => 'normalisasiStatusNikah',
+            'jenisKelamin' => 'normalisasiJenisKelamin',
+            'jkPasangan' => 'normalisasiJenisKelamin',
+            'jaminanKesehatan' => 'normalisasiJaminanKesehatan',
+        ];
+
+        foreach ($map as $key => $method) {
+            if (!array_key_exists($key, $data) || $data[$key] === null || $data[$key] === '') {
+                continue;
+            }
+            $asli = trim((string) $data[$key]);
+            $data[$key] = Karyawan::$method($asli) ?? $asli;
+        }
+
+        return $data;
+    }
+
+    /**
      * Kolom masa_kerja bertipe angka (tahun), tetapi Excel berisi teks seperti
      * "5 Tahun" atau "8 Bulan". Ambil angkanya saja; bulan dikonversi ke tahun.
      */
@@ -286,14 +315,22 @@ class KaryawanController extends Controller
             // hanya tabel turunan (pribadi, pendidikan, bank, anak, dst).
             $karyawan->touch();
 
+            // Buang relasi yang sempat dimuat sebelum data diubah (mis. divisi/jabatan
+            // di import) supaya respons memuat data terbaru, bukan data lama.
+            $karyawan->unsetRelations();
+
             return $karyawan;
         });
     }
 
     public function store(Request $request)
     {
-        $data = $request->validate($this->rules());
-        $karyawan = $this->persist($data);
+        $request->merge($this->normalisasiPilihan($request->all()));
+        $request->validate($this->rules());
+        // validate() hanya mengembalikan field yang ada di aturan validasi,
+        // sehingga statusPegawai, golongan, agama, dst ikut terbuang.
+        // Validasi cukup dijalankan, lalu data lengkap diambil dari request.
+        $karyawan = $this->persist($request->all());
 
         \App\Models\ActivityLog::catat('Tambah karyawan', "Menambahkan karyawan {$karyawan->nama} (NIK {$karyawan->nik}).");
 
@@ -302,8 +339,10 @@ class KaryawanController extends Controller
 
     public function update(Request $request, Karyawan $karyawan)
     {
-        $data = $request->validate($this->rules($karyawan->id));
-        $karyawan = $this->persist($data, $karyawan);
+        $request->merge($this->normalisasiPilihan($request->all()));
+        $request->validate($this->rules($karyawan->id));
+        // Lihat catatan di store(): jangan pakai hasil validate() untuk persist.
+        $karyawan = $this->persist($request->all(), $karyawan);
 
         \App\Models\ActivityLog::catat('Ubah karyawan', "Memperbarui data karyawan {$karyawan->nama} (NIK {$karyawan->nik}).");
 
@@ -353,6 +392,8 @@ class KaryawanController extends Controller
             $nomorBaris = $index + 2; // header Excel berada di baris 1
 
             try {
+                $row = $this->normalisasiPilihan($row);
+
                 // Cari data lama berdasarkan NIK. Import bersifat upsert:
                 // NIK yang sudah ada diperbarui, NIK baru dibuat.
                 $existing = Karyawan::with(['divisi', 'jabatan'])

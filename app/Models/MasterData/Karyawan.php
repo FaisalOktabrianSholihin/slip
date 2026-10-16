@@ -102,6 +102,83 @@ class Karyawan extends Model
         };
     }
 
+    /**
+     * Samakan golongan ke: I | II | III | IV (angka 1-4 dan awalan "Gol." ikut dikenali).
+     * Nilai dengan sub-golongan (mis. "III/a") tidak dikenali -> null, sehingga
+     * pemanggil mempertahankan nilai aslinya dan tidak ada data yang terbuang.
+     */
+    public static function normalisasiGolongan(?string $nilai): ?string
+    {
+        $s = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', (string) $nilai));
+        $s = preg_replace('/^(GOLONGAN|GOL)/', '', $s);
+
+        return match ($s) {
+            'I', '1' => 'I',
+            'II', '2' => 'II',
+            'III', '3' => 'III',
+            'IV', '4' => 'IV',
+            default => null,
+        };
+    }
+
+    /** Samakan agama ke: Islam | Kristen | Katolik | Hindu | Buddha | Konghucu. */
+    public static function normalisasiAgama(?string $nilai): ?string
+    {
+        $s = strtolower(preg_replace('/[^A-Za-z]/', '', (string) $nilai));
+
+        return match (true) {
+            $s === '' => null,
+            in_array($s, ['islam', 'muslim', 'moslem'], true) => 'Islam',
+            in_array($s, ['kristen', 'protestan', 'kristenprotestan'], true) => 'Kristen',
+            in_array($s, ['katolik', 'katholik', 'kristenkatolik', 'katolikroma'], true) => 'Katolik',
+            $s === 'hindu' => 'Hindu',
+            in_array($s, ['buddha', 'budha', 'buddhis', 'budhis'], true) => 'Buddha',
+            in_array($s, ['konghucu', 'khonghucu', 'konghuchu', 'khonghuchu'], true) => 'Konghucu',
+            default => null,
+        };
+    }
+
+    /** Samakan status nikah ke: Belum Menikah | Menikah | Cerai Hidup | Cerai Mati. */
+    public static function normalisasiStatusNikah(?string $nilai): ?string
+    {
+        $s = strtolower(preg_replace('/[^A-Za-z]/', '', (string) $nilai));
+
+        return match (true) {
+            $s === '' => null,
+            in_array($s, ['belummenikah', 'belumkawin', 'belumnikah', 'tidakmenikah', 'tidakkawin', 'lajang', 'single', 'bm', 'tk'], true) => 'Belum Menikah',
+            in_array($s, ['menikah', 'kawin', 'nikah', 'sudahmenikah', 'sudahkawin', 'married', 'k'], true) => 'Menikah',
+            in_array($s, ['ceraihidup', 'ch'], true) => 'Cerai Hidup',
+            in_array($s, ['ceraimati', 'cm'], true) => 'Cerai Mati',
+            default => null,
+        };
+    }
+
+    /** Samakan jenis kelamin (karyawan maupun pasangan) ke: L | P. */
+    public static function normalisasiJenisKelamin(?string $nilai): ?string
+    {
+        $s = strtolower(preg_replace('/[^A-Za-z]/', '', (string) $nilai));
+
+        return match (true) {
+            in_array($s, ['l', 'lk', 'laki', 'lakilaki', 'pria', 'male', 'm'], true) => 'L',
+            in_array($s, ['p', 'pr', 'perempuan', 'wanita', 'female', 'f'], true) => 'P',
+            default => null,
+        };
+    }
+
+    /** Samakan jaminan kesehatan ke: BPJS Kesehatan | Asuransi Swasta | Tidak Ada. */
+    public static function normalisasiJaminanKesehatan(?string $nilai): ?string
+    {
+        $s = strtolower(trim((string) $nilai));
+
+        return match (true) {
+            $s === '' => null,
+            (bool) preg_match('/^(tidak|belum|tanpa|none)/', $s) => 'Tidak Ada',
+            str_contains($s, 'bpjs') => 'BPJS Kesehatan',
+            str_contains($s, 'swasta') || str_contains($s, 'asuransi') => 'Asuransi Swasta',
+            default => null,
+        };
+    }
+
     /* =========================================================
      * Relasi ke data master lain (masih di db_induk)
      * ========================================================= */

@@ -656,10 +656,28 @@
     jenisKelamin: 'pribadi', tglLahir: 'pribadi'
   };
 
+  /* Isi <select> tanpa menghilangkan data: kalau nilai dari database tidak ada
+     di daftar opsi (mis. golongan "III/a", divisi baru dari import), tambahkan
+     sebagai opsi sementara. Tanpa ini select menjadi kosong dan data lama
+     ikut terhapus saat form disimpan. */
+  function setSelect(select, value) {
+    value = (value == null) ? '' : String(value);
+    $$('option[data-temp]', select).forEach(function (o) { o.remove(); });
+    if (value !== '' && !$$('option', select).some(function (o) { return o.value === value; })) {
+      var opt = document.createElement('option');
+      opt.value = value;
+      opt.textContent = value;
+      opt.setAttribute('data-temp', '1');
+      select.appendChild(opt);
+    }
+    select.value = value;
+  }
+
   function openForm(id) {
     editId = id || null;
     clearErrors();
     els.form.reset();
+    $$('option[data-temp]', els.form).forEach(function (o) { o.remove(); });
     formBank = [];
     formAnak = [];
 
@@ -671,12 +689,12 @@
       var f = els.form.elements;
       f.nik.value = r.nik || '';
       f.noAbsen.value = r.noAbsen || '';
-      f.golongan.value = r.golongan || '';
+      setSelect(f.golongan, r.golongan);
       f.nama.value = r.nama || '';
       f.namaPanggilan.value = r.namaPanggilan || '';
-      f.jabatan.value = r.jabatan || '';
-      f.divisi.value = r.divisi || '';
-      f.statusPegawai.value = r.statusPegawai || '';
+      setSelect(f.jabatan, r.jabatan);
+      setSelect(f.divisi, r.divisi);
+      setSelect(f.statusPegawai, r.statusPegawai);
       f.status.value = r.aktif ? 'aktif' : 'nonaktif';
       f.masaKerja.value = r.masaKerja || '';
       f.tglMasuk.value = r.tglMasuk || '';
@@ -689,19 +707,19 @@
       f.hp.value = r.hp || '';
       f.alamat.value = r.alamat || '';
 
-      f.jenisKelamin.value = r.jenisKelamin || '';
-      f.agama.value = r.agama || '';
+      setSelect(f.jenisKelamin, r.jenisKelamin);
+      setSelect(f.agama, r.agama);
       f.suku.value = r.suku || '';
       f.tempatLahir.value = r.tempatLahir || '';
       f.tglLahir.value = r.tglLahir || '';
-      f.statusNikah.value = r.statusNikah || '';
+      setSelect(f.statusNikah, r.statusNikah);
       f.hobby.value = r.hobby || '';
 
       f.sd.value = r.sd || '';
       f.sltp.value = r.sltp || '';
       f.slta.value = r.slta || '';
       f.pt.value = r.pt || '';
-      f.pendidikanTerakhir.value = r.pendidikanTerakhir || '';
+      setSelect(f.pendidikanTerakhir, r.pendidikanTerakhir);
       f.jurusan.value = r.jurusan || '';
       f.tahunMasuk.value = r.tahunMasuk || '';
       f.tahunKeluar.value = r.tahunKeluar || '';
@@ -712,9 +730,9 @@
       f.tempatLahirPasangan.value = r.tempatLahirPasangan || '';
       f.tglLahirPasangan.value = r.tglLahirPasangan || '';
       f.pekerjaanPasangan.value = r.pekerjaanPasangan || '';
-      f.jkPasangan.value = r.jkPasangan || '';
+      setSelect(f.jkPasangan, r.jkPasangan);
       f.pendidikanPasangan.value = r.pendidikanPasangan || '';
-      f.jaminanKesehatan.value = r.jaminanKesehatan || '';
+      setSelect(f.jaminanKesehatan, r.jaminanKesehatan);
 
       formBank = (r.bank && r.bank.length) ? r.bank.map(function (b) { return { namaBank: b.namaBank, noRekening: b.noRekening, atasNama: b.atasNama }; }) : [{ namaBank: '', noRekening: '', atasNama: '' }];
       formAnak = (r.anak && r.anak.length) ? r.anak.map(function (a) { return Object.assign({}, a); }) : [];
@@ -785,7 +803,7 @@
   }
 
   els.form.elements.ktp.addEventListener('input', function () {
-    this.value = this.value.replace(/\D/g, '').slice(0, 8);
+    this.value = this.value.replace(/\D/g, '').slice(0, 16);
   });
 
   els.form.addEventListener('submit', function (e) {
@@ -1101,6 +1119,43 @@
     ['telepon', 'hp'], ['phone', 'hp'], ['mobile', 'hp']
   ].forEach(function (pair) { IMPORT_HEADERS[normHeader(pair[0])] = pair[1]; });
   IMPORT_HEADERS.nohp = 'hp'; IMPORT_HEADERS.whatsapp = 'hp'; IMPORT_HEADERS.hpwa = 'hp';
+
+  // Alias tambahan: header Excel buatan sendiri sering tidak persis sama dengan
+  // template ("Gol", "No KTP", "Tgl Lahir", dst). Tanpa alias, kolom itu
+  // dilewati diam-diam dan datanya tidak ikut tersimpan.
+  [
+    ['gol', 'golongan'], ['golongankaryawan', 'golongan'], ['pangkat', 'golongan'], ['pangkatgolongan', 'golongan'], ['golonganpangkat', 'golongan'],
+    ['nomorabsen', 'noAbsen'], ['nomerabsen', 'noAbsen'], ['absen', 'noAbsen'], ['idabsen', 'noAbsen'], ['noabsensi', 'noAbsen'], ['nofinger', 'noAbsen'], ['idfinger', 'noAbsen'],
+    ['panggilan', 'namaPanggilan'], ['namapanggil', 'namaPanggilan'],
+    ['statuskaryawan', 'statusPegawai'], ['statuskepegawaian', 'statusPegawai'], ['statuspekerjaan', 'statusPegawai'], ['statuskontrak', 'statusPegawai'], ['statuspegawaian', 'statusPegawai'],
+    ['statusaktif', 'aktif'],
+    ['masakerjatahun', 'masaKerja'], ['lamakerja', 'masaKerja'],
+    ['tglmasuk', 'tglMasuk'], ['tanggalbergabung', 'tglMasuk'], ['tglbergabung', 'tglMasuk'], ['tanggalmasukkerja', 'tglMasuk'], ['tglmasukkerja', 'tglMasuk'],
+    ['tglpengangkatan', 'tglAngkat'], ['tanggalangkat', 'tglAngkat'], ['tglangkat', 'tglAngkat'], ['tanggalpengangkatankaryawan', 'tglAngkat'],
+    ['tglpensiun', 'tglPensiun'],
+    ['hakcuti', 'jatahCuti'], ['jatahcutitahunan', 'jatahCuti'], ['sisahakcuti', 'sisaCuti'],
+    ['noktp', 'ktp'], ['nomorktp', 'ktp'], ['nikktp', 'ktp'], ['noidentitas', 'ktp'], ['nomoridentitas', 'ktp'],
+    ['alamatlengkap', 'alamat'], ['alamatdomisili', 'alamat'], ['alamatktp', 'alamat'],
+    ['jk', 'jenisKelamin'], ['kelamin', 'jenisKelamin'], ['gender', 'jenisKelamin'], ['sex', 'jenisKelamin'],
+    ['religion', 'agama'],
+    ['tmptlahir', 'tempatLahir'], ['tgllahir', 'tglLahir'], ['birthdate', 'tglLahir'], ['dob', 'tglLahir'],
+    ['statusperkawinan', 'statusNikah'], ['statuspernikahan', 'statusNikah'], ['statuskawin', 'statusNikah'], ['statusmenikah', 'statusNikah'], ['maritalstatus', 'statusNikah'], ['perkawinan', 'statusNikah'],
+    ['hobi', 'hobby'],
+    ['smp', 'sltp'], ['sma', 'slta'], ['smk', 'slta'], ['smasmk', 'slta'], ['universitas', 'pt'], ['kuliah', 'pt'], ['pendidikantinggi', 'pt'],
+    ['pendidikan', 'pendidikanTerakhir'], ['pendidikanakhir', 'pendidikanTerakhir'], ['tingkatpendidikan', 'pendidikanTerakhir'],
+    ['programstudi', 'jurusan'], ['prodi', 'jurusan'],
+    ['thnmasuk', 'tahunMasuk'], ['thnkeluar', 'tahunKeluar'], ['tahunlulus', 'tahunKeluar'], ['thnlulus', 'tahunKeluar'],
+    ['ayah', 'namaAyah'], ['namaayahkandung', 'namaAyah'], ['ibu', 'namaIbu'], ['namaibukandung', 'namaIbu'],
+    ['pasangan', 'namaPasangan'], ['namasuami', 'namaPasangan'], ['namaistri', 'namaPasangan'], ['namasuamiistri', 'namaPasangan'],
+    ['tgllahirpasangan', 'tglLahirPasangan'], ['jkpasangan', 'jkPasangan'],
+    ['jaminan', 'jaminanKesehatan'], ['jenisjaminan', 'jaminanKesehatan'], ['bpjs', 'jaminanKesehatan'], ['asuransi', 'jaminanKesehatan'],
+    ['bank', 'bank1Nama'], ['namabank', 'bank1Nama'],
+    ['norekening', 'bank1NoRekening'], ['nomorrekening', 'bank1NoRekening'], ['rekening', 'bank1NoRekening'], ['norek', 'bank1NoRekening'],
+    ['atasnama', 'bank1AtasNama'], ['namarekening', 'bank1AtasNama'], ['pemilikrekening', 'bank1AtasNama']
+  ].forEach(function (pair) {
+    var k = normHeader(pair[0]);
+    if (!IMPORT_HEADERS[k]) IMPORT_HEADERS[k] = pair[1];
+  });
   var IMPORT_BTN_HTML = '<i class="fa-solid fa-upload"></i> Import Excel';
 
   function hasExcelLib() {
@@ -1161,11 +1216,12 @@
   function openImport() { els.importFile.value = ''; els.importSubmit.disabled = true; els.importResult.hidden = true; openModal(els.modalImport); }
   function readFileBuffer(file) { return new Promise(function (resolve, reject) { var fr = new FileReader(); fr.onload = function () { resolve(fr.result); }; fr.onerror = function () { reject(fr.error); }; fr.readAsArrayBuffer(file); }); }
   function importFromSheet(ws) {
-    var col = {};
+    var col = {}, ignored = [];
     ws.getRow(1).eachCell({ includeEmpty: false }, function (cell, n) {
-      var header = normHeader(cellText(cell.value));
-      var key = IMPORT_HEADERS[header];
+      var raw = cellText(cell.value);
+      var key = IMPORT_HEADERS[normHeader(raw)];
       if (key && !col[key]) col[key] = n;
+      else if (raw && ignored.indexOf(raw) === -1) ignored.push(raw);
     });
 
     if (!col.nik || !col.nama) return { fatal: 'Header tidak sesuai. Kolom wajib: NIK dan Nama.' };
@@ -1221,7 +1277,7 @@
       seen[nik] = true;
     }
 
-    return { added: importedRows.length, errors: errors, importedRows: importedRows };
+    return { added: importedRows.length, errors: errors, importedRows: importedRows, ignored: ignored };
   }
   function persistImportedRows(res) {
     if (!res.added || !res.importedRows.length) return Promise.resolve(res);
@@ -1242,7 +1298,13 @@
       });
       res.added = (saved.summary && Number.isFinite(saved.summary.success)) ? saved.summary.success : (saved.imported || []).length;
 
+      // Divisi/jabatan baru dari Excel harus masuk ke daftar dropdown.
+      (saved.imported || []).forEach(function (r) {
+        if (r.divisi && DIVISI.indexOf(r.divisi) === -1) DIVISI.push(r.divisi);
+        if (r.jabatan && JABATAN.indexOf(r.jabatan) === -1) JABATAN.push(r.jabatan);
+      });
       fillSelect(els.filterDivisi, true); fillSelect(els.form.elements.divisi, false);
+      fillOptions(els.form.elements.jabatan, JABATAN, 'Pilih Jabatan');
       state.page = 1; render();
       return res;
     }).catch(function (err) {
@@ -1250,15 +1312,37 @@
       return res;
     });
   }
-  function showImportResult(res) { var box = els.importResult, html, cls; if (res.fatal) { cls = 'kw-import__result--error'; html = '<p class="kw-import__summary">' + esc(res.fatal) + '</p>'; toast('Import gagal.', 'error'); } else if (res.added && !res.errors.length) { closeModal(els.modalImport); toast(res.added + ' data karyawan berhasil diimport lengkap.'); return; } else { var LIMIT = 50; cls = res.added ? 'kw-import__result--warn' : 'kw-import__result--error'; html = '<p class="kw-import__summary">' + (res.added ? res.added + ' data berhasil diimport, ' : 'Tidak ada data yang diimport, ') + res.errors.length + ' baris dilewati:</p><ul class="kw-import__errors">' + res.errors.slice(0, LIMIT).map(function (e) { return '<li><strong>Baris ' + e.row + '</strong> ' + esc(e.msg) + '</li>'; }).join('') + (res.errors.length > LIMIT ? '<li>…dan ' + (res.errors.length - LIMIT) + ' baris lainnya.</li>' : '') + '</ul>'; toast(res.added ? res.added + ' data diimport, ' + res.errors.length + ' dilewati.' : 'Tidak ada data yang diimport.', 'error'); } box.className = 'kw-import__result ' + cls; box.innerHTML = html; box.hidden = false; box.scrollIntoView({ block: 'nearest' }); }
+  function showImportResult(res) {
+    var box = els.importResult, html, cls;
+    var ign = (res.ignored && res.ignored.length)
+      ? '<p class="kw-import__summary">Kolom tidak dikenali dan TIDAK diimport: ' + esc(res.ignored.join(', ')) + '. Samakan nama kolom dengan template.</p>'
+      : '';
+    if (res.fatal) {
+      cls = 'kw-import__result--error';
+      html = '<p class="kw-import__summary">' + esc(res.fatal) + '</p>';
+      toast('Import gagal.', 'error');
+    } else if (res.added && !res.errors.length && !ign) {
+      closeModal(els.modalImport);
+      toast(res.added + ' data karyawan berhasil diimport lengkap.');
+      return;
+    } else {
+      var LIMIT = 50;
+      cls = res.added ? 'kw-import__result--warn' : 'kw-import__result--error';
+      html = '<p class="kw-import__summary">' + (res.added ? res.added + ' data berhasil diimport' : 'Tidak ada data yang diimport') +
+        (res.errors.length ? ', ' + res.errors.length + ' baris dilewati:</p>' : '.</p>');
+      if (res.errors.length) {
+        html += '<ul class="kw-import__errors">' + res.errors.slice(0, LIMIT).map(function (e) { return '<li><strong>Baris ' + e.row + '</strong> ' + esc(e.msg) + '</li>'; }).join('') +
+          (res.errors.length > LIMIT ? '<li>…dan ' + (res.errors.length - LIMIT) + ' baris lainnya.</li>' : '') + '</ul>';
+      }
+      html += ign;
+      toast(res.added ? res.added + ' data diimport' + (res.errors.length ? ', ' + res.errors.length + ' dilewati.' : '. Ada kolom yang tidak dikenali.') : 'Tidak ada data yang diimport.', 'error');
+    }
+    box.className = 'kw-import__result ' + cls;
+    box.innerHTML = html;
+    box.hidden = false;
+    box.scrollIntoView({ block: 'nearest' });
+  }
   function runImport() { var file = els.importFile.files[0]; if (!file || !hasExcelLib()) return; if (!/\.xlsx$/i.test(file.name)) { showImportResult({ fatal: 'File harus berformat .xlsx.' }); return; } els.importSubmit.disabled = true; els.importSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Memproses...'; readFileBuffer(file).then(function (buf) { return new ExcelJS.Workbook().xlsx.load(buf); }).then(function (wb) { var ws = wb.worksheets[0]; if (!ws) throw new Error('Sheet kosong'); return importFromSheet(ws); }).then(function (res) { return persistImportedRows(res); }).then(function (res) { showImportResult(res); }).catch(function (err) { console.error(err); showImportResult({ fatal: 'File tidak bisa dibaca. Pastikan file .xlsx valid.' }); }).then(function () { els.importSubmit.innerHTML = IMPORT_BTN_HTML; els.importFile.value = ''; els.importSubmit.disabled = true; }); }
-  $('#kwBtnAdd').addEventListener('click', function () { openForm(); });
-  $('#kwBtnExport').addEventListener('click', exportExcel);
-  $('#kwBtnImport').addEventListener('click', openImport);
-  $('#kwBtnTemplate').addEventListener('click', downloadTemplate);
-  els.importFile.addEventListener('change', function () { els.importSubmit.disabled = !this.files.length; els.importResult.hidden = true; });
-  els.importSubmit.addEventListener('click', runImport);
-
   /* ---------- Event ---------- */
   $('#kwBtnAdd').addEventListener('click', function () { openForm(); });
   $('#kwBtnExport').addEventListener('click', exportExcel);
